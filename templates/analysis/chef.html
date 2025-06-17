@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chef Analysis - Tabble</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <style>
+        body {
+            background-color: #000000;
+            color: #FFFFFF;
+            font-family: 'Montserrat', sans-serif;
+        }
+        .card {
+            background-color: #121212;
+            border-top: 4px solid #FFA500;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            color: #FFA500;
+        }
+        .nav-tabs .nav-link {
+            color: #FFFFFF;
+        }
+        .nav-tabs .nav-link.active {
+            background-color: transparent;
+            color: #FFA500;
+            border-color: #FFA500 #FFA500 transparent;
+        }
+        .btn-primary {
+            background-color: #FFA500;
+            border-color: #FFA500;
+        }
+        .btn-outline-primary {
+            color: #FFA500;
+            border-color: #FFA500;
+        }
+        .btn-outline-primary:hover {
+            background-color: #FFA500;
+            color: #FFFFFF;
+        }
+        .table {
+            color: #FFFFFF;
+        }
+        .table thead th {
+            background-color: #000000;
+            color: #FFA500;
+            border-color: #333333;
+        }
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(255, 165, 0, 0.05);
+        }
+        .progress {
+            height: 8px;
+            background-color: rgba(255, 165, 0, 0.1);
+        }
+        .progress-bar {
+            background-color: #FFA500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Chef Analysis</h1>
+
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link" href="/analysis">Overview</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/analysis/customer">Customer Analysis</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/analysis/dish">Dish Analysis</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/analysis/chef">Chef Analysis</a>
+            </li>
+        </ul>
+
+        <div class="alert alert-info">
+            <h5>Chef Analysis Dashboard</h5>
+            <p>This dashboard provides detailed insights into kitchen performance and efficiency. For a better experience with interactive charts, please use the React frontend.</p>
+            <a href="/" class="btn btn-primary">Go to Home Page</a>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h1 class="display-4 text-warning">0</h1>
+                        <h5 class="card-title">Completed Orders</h5>
+                        <p class="card-text">Total orders completed in the last 30 days</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h1 class="display-4 text-warning">0</h1>
+                        <h5 class="card-title">Avg. Items Per Order</h5>
+                        <p class="card-text">Average number of items in each order</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h1 class="display-4 text-warning">N/A</h1>
+                        <h5 class="card-title">Busiest Day</h5>
+                        <p class="card-text">Day of the week with the most orders</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title">Table Utilization</h5>
+                <div class="row">
+                    <div class="col-md-12">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Table Number</th>
+                                    <th>Status</th>
+                                    <th>Order Count</th>
+                                    <th>Utilization</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>No data available</td>
+                                    <td>-</td>
+                                    <td>-</td>
+                                    <td>-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title">Kitchen Efficiency Insights</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="border-start border-warning ps-3 mb-3">
+                            <h6>Staffing Recommendation</h6>
+                            <p class="small">No clear busiest day identified. Maintain consistent staffing throughout the week.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border-start border-warning ps-3 mb-3">
+                            <h6>Order Complexity</h6>
+                            <p class="small">Your average order contains 0 items. This indicates relatively simple orders. Consider upselling strategies to increase order size.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border-start border-warning ps-3 mb-3">
+                            <h6>Table Optimization</h6>
+                            <p class="small">No table utilization data available. All tables are being utilized effectively.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title">Order Preparation Efficiency</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-dark rounded">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-check-circle-fill text-warning me-2"></i>
+                                <h6 class="mb-0">Order Completion Rate</h6>
+                            </div>
+                            <h3 class="text-warning mb-2">100%</h3>
+                            <p class="small text-muted">All orders are being completed successfully. Maintain this excellent performance.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-dark rounded">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-speedometer text-warning me-2"></i>
+                                <h6 class="mb-0">Kitchen Workload</h6>
+                            </div>
+                            <h3 class="text-warning mb-2">0</h3>
+                            <p class="small text-muted">Total items prepared in the last 30 days. Each item requires careful preparation.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-5 mb-4">
+            <p>For a better experience with interactive charts and detailed analytics, please use the React frontend.</p>
+            <div class="btn-group">
+                <a href="/analysis" class="btn btn-outline-primary">Overview</a>
+                <a href="/analysis/customer" class="btn btn-outline-primary">Customer Analysis</a>
+                <a href="/analysis/dish" class="btn btn-outline-primary">Dish Analysis</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', path='/js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>
