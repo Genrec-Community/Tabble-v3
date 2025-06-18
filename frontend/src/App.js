@@ -1,34 +1,45 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { Provider } from 'react-redux';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
-// Layouts
+// Store and Query Client
+import { store } from './store';
+import { queryClient } from './services/queryClient';
+
+// Error Boundary
+import ErrorBoundary from './components/ErrorBoundary';
+import LoadingSpinner, { PageLoadingSpinner } from './components/LoadingSpinner';
+
+// Layouts (not lazy loaded as they're used frequently)
 import Layout from './components/Layout';
 import AdminLayout from './components/AdminLayout';
 import ChefLayout from './components/ChefLayout';
 
-// Pages
-import Home from './pages/Home';
-import ChefDashboard from './pages/chef/Dashboard';
-import ChefOrders from './pages/chef/Orders';
-import CustomerLogin from './pages/customer/Login';
-import CustomerMenu from './pages/customer/Menu';
-import AdminDashboard from './pages/admin/Dashboard';
-import AdminDishes from './pages/admin/Dishes';
-import AdminOffers from './pages/admin/Offers';
-import AdminSpecials from './pages/admin/Specials';
-import CompletedOrders from './pages/admin/CompletedOrders';
-import LoyaltyProgram from './pages/admin/LoyaltyProgram';
-import SelectionOffers from './pages/admin/SelectionOffers';
-import TableManagement from './pages/admin/TableManagement';
-import AdminSettings from './pages/admin/Settings';
+// Lazy load pages for code splitting
+const Home = lazy(() => import('./pages/Home'));
+const ChefDashboard = lazy(() => import('./pages/chef/Dashboard'));
+const ChefOrders = lazy(() => import('./pages/chef/Orders'));
+const CustomerLogin = lazy(() => import('./pages/customer/Login'));
+const CustomerMenu = lazy(() => import('./pages/customer/Menu'));
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminDishes = lazy(() => import('./pages/admin/Dishes'));
+const AdminOffers = lazy(() => import('./pages/admin/Offers'));
+const AdminSpecials = lazy(() => import('./pages/admin/Specials'));
+const CompletedOrders = lazy(() => import('./pages/admin/CompletedOrders'));
+const LoyaltyProgram = lazy(() => import('./pages/admin/LoyaltyProgram'));
+const SelectionOffers = lazy(() => import('./pages/admin/SelectionOffers'));
+const TableManagement = lazy(() => import('./pages/admin/TableManagement'));
+const AdminSettings = lazy(() => import('./pages/admin/Settings'));
 
-// Analysis Pages
-import AnalysisDashboard from './pages/analysis/Dashboard';
-import CustomerAnalysis from './pages/analysis/CustomerAnalysis';
-import DishAnalysis from './pages/analysis/DishAnalysis';
-import ChefAnalysis from './pages/analysis/ChefAnalysis';
+// Analysis Pages (lazy loaded)
+const AnalysisDashboard = lazy(() => import('./pages/analysis/Dashboard'));
+const CustomerAnalysis = lazy(() => import('./pages/analysis/CustomerAnalysis'));
+const DishAnalysis = lazy(() => import('./pages/analysis/DishAnalysis'));
+const ChefAnalysis = lazy(() => import('./pages/analysis/ChefAnalysis'));
 
 // Create a theme with luxury hotel aesthetic
 const theme = createTheme({
@@ -305,51 +316,187 @@ const theme = createTheme({
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
-        <Routes>
-          {/* Main Layout Routes */}
-          <Route element={<Layout />}>
-            <Route path="/" element={<Home />} />
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <ErrorBoundary>
+            <Router>
+              <Suspense fallback={<PageLoadingSpinner message="Loading application..." />}>
+                <Routes>
+                  {/* Main Layout Routes */}
+                  <Route element={<Layout />}>
+                    <Route
+                      path="/"
+                      element={
+                        <ErrorBoundary>
+                          <Home />
+                        </ErrorBoundary>
+                      }
+                    />
+                  </Route>
 
-          </Route>
+                  {/* Chef Layout Routes */}
+                  <Route element={<ChefLayout />}>
+                    <Route
+                      path="/chef"
+                      element={
+                        <ErrorBoundary>
+                          <ChefDashboard />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/chef/orders"
+                      element={
+                        <ErrorBoundary>
+                          <ChefOrders />
+                        </ErrorBoundary>
+                      }
+                    />
+                  </Route>
 
-          {/* Chef Layout Routes */}
-          <Route element={<ChefLayout />}>
-            <Route path="/chef" element={<ChefDashboard />} />
-            <Route path="/chef/orders" element={<ChefOrders />} />
-          </Route>
+                  {/* Main Layout Routes (continued) */}
+                  <Route element={<Layout />}>
+                    {/* Customer Routes */}
+                    <Route
+                      path="/customer"
+                      element={
+                        <ErrorBoundary>
+                          <CustomerLogin />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/customer/menu"
+                      element={
+                        <ErrorBoundary>
+                          <CustomerMenu />
+                        </ErrorBoundary>
+                      }
+                    />
+                  </Route>
 
-          {/* Main Layout Routes (continued) */}
-          <Route element={<Layout />}>
+                  {/* Admin Layout Routes */}
+                  <Route element={<AdminLayout />}>
+                    <Route
+                      path="/admin"
+                      element={
+                        <ErrorBoundary>
+                          <AdminDashboard />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/admin/dishes"
+                      element={
+                        <ErrorBoundary>
+                          <AdminDishes />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/admin/offers"
+                      element={
+                        <ErrorBoundary>
+                          <AdminOffers />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/admin/specials"
+                      element={
+                        <ErrorBoundary>
+                          <AdminSpecials />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/admin/completed-orders"
+                      element={
+                        <ErrorBoundary>
+                          <CompletedOrders />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/admin/loyalty"
+                      element={
+                        <ErrorBoundary>
+                          <LoyaltyProgram />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/admin/selection-offers"
+                      element={
+                        <ErrorBoundary>
+                          <SelectionOffers />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/admin/tables"
+                      element={
+                        <ErrorBoundary>
+                          <TableManagement />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/admin/settings"
+                      element={
+                        <ErrorBoundary>
+                          <AdminSettings />
+                        </ErrorBoundary>
+                      }
+                    />
 
-            {/* Customer Routes */}
-            <Route path="/customer" element={<CustomerLogin />} />
-            <Route path="/customer/menu" element={<CustomerMenu />} />
-          </Route>
-
-          {/* Admin Layout Routes */}
-          <Route element={<AdminLayout />}>
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/dishes" element={<AdminDishes />} />
-            <Route path="/admin/offers" element={<AdminOffers />} />
-            <Route path="/admin/specials" element={<AdminSpecials />} />
-            <Route path="/admin/completed-orders" element={<CompletedOrders />} />
-            <Route path="/admin/loyalty" element={<LoyaltyProgram />} />
-            <Route path="/admin/selection-offers" element={<SelectionOffers />} />
-            <Route path="/admin/tables" element={<TableManagement />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
-
-            {/* Analysis Routes */}
-            <Route path="/analysis" element={<AnalysisDashboard />} />
-            <Route path="/analysis/customer" element={<CustomerAnalysis />} />
-            <Route path="/analysis/dish" element={<DishAnalysis />} />
-            <Route path="/analysis/chef" element={<ChefAnalysis />} />
-          </Route>
-        </Routes>
-      </Router>
-    </ThemeProvider>
+                    {/* Analysis Routes */}
+                    <Route
+                      path="/analysis"
+                      element={
+                        <ErrorBoundary>
+                          <AnalysisDashboard />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/analysis/customer"
+                      element={
+                        <ErrorBoundary>
+                          <CustomerAnalysis />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/analysis/dish"
+                      element={
+                        <ErrorBoundary>
+                          <DishAnalysis />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/analysis/chef"
+                      element={
+                        <ErrorBoundary>
+                          <ChefAnalysis />
+                        </ErrorBoundary>
+                      }
+                    />
+                  </Route>
+                </Routes>
+              </Suspense>
+            </Router>
+          </ErrorBoundary>
+        </ThemeProvider>
+        {/* React Query Devtools - only in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <ReactQueryDevtools initialIsOpen={false} />
+        )}
+      </QueryClientProvider>
+    </Provider>
   );
 }
 
