@@ -43,24 +43,37 @@ import { adminService } from '../../services/api';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: 'medium',
+  borderBottom: '1px solid rgba(255, 165, 0, 0.15)',
+  borderRight: '1px solid rgba(255, 165, 0, 0.1)',
+  '&:last-child': {
+    borderRight: 'none',
+  },
   '&.MuiTableCell-head': {
     backgroundColor: theme.palette.primary.main,
     color: theme.palette.common.white,
     fontWeight: 'bold',
+    borderBottom: '2px solid rgba(255, 165, 0, 0.3)',
+    borderTop: '1px solid rgba(255, 165, 0, 0.2)',
   },
 }));
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  borderBottom: '1px solid rgba(255, 165, 0, 0.15)',
   '&:nth-of-type(odd)': {
-    backgroundColor: theme.palette.action.hover,
+    backgroundColor: 'rgba(255, 165, 0, 0.03)',
+  },
+  '&:nth-of-type(even)': {
+    backgroundColor: 'rgba(255, 165, 0, 0.01)',
   },
   '&:hover': {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: 'rgba(255, 165, 0, 0.08)',
+    transform: 'translateY(-1px)',
+    boxShadow: '0 2px 8px rgba(255, 165, 0, 0.2)',
   },
-  // hide last border
-  '&:last-child td, &:last-child th': {
-    border: 0,
+  '&:last-child': {
+    borderBottom: 'none',
   },
+  transition: 'all 0.2s ease',
 }));
 
 const CompletedOrders = () => {
@@ -359,7 +372,16 @@ const CompletedOrders = () => {
           </Typography>
         </Paper>
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+        <TableContainer
+          component={Paper}
+          sx={{
+            borderRadius: '12px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: '2px solid rgba(255, 165, 0, 0.2)',
+            overflow: 'hidden',
+            backgroundColor: '#121212',
+          }}
+        >
           <Table>
             <TableHead>
               <TableRow>

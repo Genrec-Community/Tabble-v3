@@ -53,6 +53,13 @@ const AdminLayout = () => {
 
   // Check database connection on component mount
   useEffect(() => {
+    // Skip database check for demo route
+    if (location.pathname === '/admin/demo') {
+      setDatabaseConnected(true);
+      setCurrentDatabase('demo.db');
+      return;
+    }
+
     const checkDatabaseConnection = async () => {
       const selectedDatabase = localStorage.getItem('adminSelectedDatabase');
       const databasePassword = localStorage.getItem('adminDatabasePassword');
@@ -85,7 +92,7 @@ const AdminLayout = () => {
     };
 
     checkDatabaseConnection();
-  }, []);
+  }, [location.pathname]);
 
   const handleDatabaseSuccess = (databaseName) => {
     // Store admin-specific database credentials

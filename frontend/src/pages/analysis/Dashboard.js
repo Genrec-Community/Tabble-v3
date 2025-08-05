@@ -463,7 +463,13 @@ const AnalysisDashboard = () => {
                 <Typography variant="h6" fontWeight="bold" gutterBottom>
                   Top Customers
                 </Typography>
-                <TableContainer>
+                <TableContainer
+                  sx={{
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255, 165, 0, 0.2)',
+                    overflow: 'hidden',
+                  }}
+                >
                   <Table>
                     <TableHead>
                       <TableRow>
@@ -506,7 +512,13 @@ const AnalysisDashboard = () => {
                 <Typography variant="h6" fontWeight="bold" gutterBottom>
                   Top Selling Dishes
                 </Typography>
-                <TableContainer>
+                <TableContainer
+                  sx={{
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255, 165, 0, 0.2)',
+                    overflow: 'hidden',
+                  }}
+                >
                   <Table>
                     <TableHead>
                       <TableRow>

@@ -33,30 +33,46 @@ const StyledDialog = styled(Dialog)(({ theme }) => ({
   }
 }));
 
-const StyledTextField = styled(TextField)(({ theme }) => ({
+const StyledTextField = styled(TextField)(() => ({
   '& .MuiOutlinedInput-root': {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(18, 18, 18, 0.8)',
     borderRadius: '8px',
+    border: '2px solid rgba(255, 165, 0, 0.3)',
     '& fieldset': {
-      borderColor: 'rgba(255, 255, 255, 0.2)',
+      borderColor: 'rgba(255, 165, 0, 0.4)',
+      borderWidth: '2px',
     },
     '&:hover fieldset': {
-      borderColor: theme.palette.primary.main,
+      borderColor: 'rgba(255, 165, 0, 0.6)',
     },
     '&.Mui-focused fieldset': {
-      borderColor: theme.palette.primary.main,
+      borderColor: '#FFA500',
+      boxShadow: '0 0 0 2px rgba(255, 165, 0, 0.2)',
+    },
+    '& .MuiSelect-select': {
+      color: '#FFFFFF !important',
+    },
+    '& .MuiSelect-icon': {
+      color: '#FFA500',
     },
   },
   '& .MuiInputLabel-root': {
     color: 'rgba(255, 255, 255, 0.7)',
+    '&.Mui-focused': {
+      color: '#FFA500',
+    },
   },
   '& .MuiInputBase-input': {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: '1.125rem',
     padding: '16px 14px',
   },
   '& .MuiInputAdornment-root .MuiSvgIcon-root': {
-    color: theme.palette.primary.main,
+    color: '#FFA500',
+  },
+  // Enhanced styling for Select dropdown
+  '& .MuiSelect-root': {
+    color: '#FFFFFF',
   },
 }));
 
@@ -186,7 +202,32 @@ const TableSetup = ({ open, onClose }) => {
         autoFocus
       >
         {availableDatabases.map((db) => (
-          <MenuItem key={db.database_name} value={db.database_name}>
+          <MenuItem
+            key={db.database_name}
+            value={db.database_name}
+            sx={{
+              border: '1px solid rgba(255, 165, 0, 0.4)',
+              margin: '2px',
+              borderRadius: '4px',
+              color: '#FFFFFF',
+              backgroundColor: 'rgba(18, 18, 18, 0.8)',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 165, 0, 0.1)',
+                border: '1px solid rgba(255, 165, 0, 0.6)',
+                borderLeft: '3px solid rgba(255, 165, 0, 0.8)',
+              },
+              '&.Mui-selected': {
+                backgroundColor: 'rgba(255, 165, 0, 0.15)',
+                border: '1px solid rgba(255, 165, 0, 0.8)',
+                borderLeft: '4px solid #FFA500',
+                color: '#FFFFFF',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 165, 0, 0.2)',
+                  border: '1px solid #FFA500',
+                },
+              },
+            }}
+          >
             {db.database_name}
           </MenuItem>
         ))}
@@ -314,7 +355,7 @@ const TableSetup = ({ open, onClose }) => {
         {!loading && activeStep === 1 && renderTableStep()}
       </DialogContent>
 
-      <DialogActions sx={{ justifyContent: 'space-between', pb: 3, px: 3 }}>
+      <DialogActions sx={{ justifyContent: activeStep === 1 ? 'space-between' : 'center', pb: 3, px: 3 }}>
         {activeStep === 1 && (
           <Button
             variant="outlined"
@@ -344,8 +385,7 @@ const TableSetup = ({ open, onClose }) => {
             borderRadius: '8px',
             fontSize: '1.125rem',
             fontWeight: 500,
-            flex: activeStep === 0 ? 1 : 0,
-            ml: activeStep === 1 ? 2 : 0
+            ...(activeStep === 0 && { width: '100%' })
           }}
         >
           {activeStep === 0 ? 'Connect to Database' : 'Continue'}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Breadcrumbs, Link, Chip } from '@mui/material';
+import { Box, Typography, Breadcrumbs, Link, Chip, Button } from '@mui/material';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import HomeIcon from '@mui/icons-material/Home';
@@ -111,7 +111,22 @@ const AdminPageHeader = ({
 
         {actions && (
           <Box display="flex" gap={2} alignItems="center">
-            {actions}
+            {Array.isArray(actions) ? (
+              actions.map((action, index) => (
+                <Button
+                  key={index}
+                  variant={action.variant || 'outlined'}
+                  startIcon={action.icon}
+                  onClick={action.onClick}
+                  disabled={action.disabled}
+                  sx={action.sx}
+                >
+                  {action.label}
+                </Button>
+              ))
+            ) : (
+              actions
+            )}
           </Box>
         )}
       </Box>

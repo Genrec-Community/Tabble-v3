@@ -17,8 +17,7 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
-  Tabs,
-  Tab,
+
   Divider,
   Table,
   TableBody,
@@ -31,6 +30,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import PercentIcon from '@mui/icons-material/Percent';
 import { adminService } from '../../services/api';
+import AdminPageHeader from '../../components/AdminPageHeader';
 
 const AdminOffers = () => {
   // State
@@ -223,38 +223,11 @@ const AdminOffers = () => {
 
   return (
     <Container>
-      <Box mb={4}>
-        <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
-          Admin Portal
-        </Typography>
-
-        <Tabs value={2} aria-label="admin tabs" sx={{ mb: 3 }}>
-          <Tab
-            label="Dashboard"
-            component={RouterLink}
-            to="/admin"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Manage Dishes"
-            component={RouterLink}
-            to="/admin/dishes"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Manage Offers"
-            component={RouterLink}
-            to="/admin/offers"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Today's Special"
-            component={RouterLink}
-            to="/admin/specials"
-            sx={{ fontWeight: 'medium' }}
-          />
-        </Tabs>
-      </Box>
+      <AdminPageHeader
+        title="Manage Offers"
+        subtitle="Create and manage promotional offers"
+        icon={<LocalOfferIcon />}
+      />
 
       <Grid container spacing={4}>
         {/* Offer Form */}
@@ -391,7 +364,16 @@ const AdminOffers = () => {
             ) : offerDishes.length === 0 ? (
               <Alert severity="info">No offers available. Add your first offer!</Alert>
             ) : (
-              <TableContainer>
+              <TableContainer
+                component={Paper}
+                sx={{
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                  border: '2px solid rgba(255, 165, 0, 0.2)',
+                  overflow: 'hidden',
+                  backgroundColor: '#121212',
+                }}
+              >
                 <Table>
                   <TableHead>
                     <TableRow>

@@ -25,8 +25,7 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
-  Tabs,
-  Tab,
+
   Divider,
   FormControlLabel,
   Switch,
@@ -43,6 +42,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import StarIcon from '@mui/icons-material/Star';
 import { adminService } from '../../services/api';
+import AdminPageHeader from '../../components/AdminPageHeader';
 
 const AdminSpecials = () => {
   // State
@@ -220,38 +220,11 @@ const AdminSpecials = () => {
 
   return (
     <Container>
-      <Box mb={4}>
-        <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
-          Admin Portal
-        </Typography>
-        
-        <Tabs value={3} aria-label="admin tabs" sx={{ mb: 3 }}>
-          <Tab 
-            label="Dashboard" 
-            component={RouterLink} 
-            to="/admin" 
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab 
-            label="Manage Dishes" 
-            component={RouterLink} 
-            to="/admin/dishes" 
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab 
-            label="Manage Offers" 
-            component={RouterLink} 
-            to="/admin/offers" 
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab 
-            label="Today's Special" 
-            component={RouterLink} 
-            to="/admin/specials" 
-            sx={{ fontWeight: 'medium' }}
-          />
-        </Tabs>
-      </Box>
+      <AdminPageHeader
+        title="Today's Special"
+        subtitle="Manage special dishes for today's menu"
+        icon={<StarIcon />}
+      />
 
       <Grid container spacing={4}>
         {/* Special Form */}

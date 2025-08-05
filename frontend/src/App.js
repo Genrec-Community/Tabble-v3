@@ -26,6 +26,7 @@ const ChefOrders = lazy(() => import('./pages/chef/Orders'));
 const CustomerLogin = lazy(() => import('./pages/customer/Login'));
 const CustomerMenu = lazy(() => import('./pages/customer/Menu'));
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const DashboardDemo = lazy(() => import('./pages/admin/DashboardDemo'));
 const AdminDishes = lazy(() => import('./pages/admin/Dishes'));
 const AdminOffers = lazy(() => import('./pages/admin/Offers'));
 const AdminSpecials = lazy(() => import('./pages/admin/Specials'));
@@ -214,15 +215,7 @@ const theme = createTheme({
         },
       },
     },
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          backgroundColor: '#121212', // Dark background for papers
-          color: '#FFFFFF', // White text
-          borderRadius: '8px',
-        },
-      },
-    },
+
     MuiAppBar: {
       styleOverrides: {
         root: {
@@ -257,12 +250,40 @@ const theme = createTheme({
         },
       },
     },
+    MuiTableContainer: {
+      styleOverrides: {
+        root: {
+          border: '1px solid rgba(255, 165, 0, 0.2)', // Orange border around entire table
+          borderRadius: '8px',
+          overflow: 'hidden',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+        },
+      },
+    },
     MuiTableRow: {
       styleOverrides: {
         root: {
+          borderBottom: '1px solid rgba(255, 165, 0, 0.15)', // Orange border between rows
           '&:hover': {
             backgroundColor: 'rgba(255, 165, 0, 0.05)', // Subtle orange hover
           },
+          '&:last-child': {
+            borderBottom: 'none', // Remove border from last row
+          },
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          borderBottom: '1px solid rgba(255, 165, 0, 0.15)', // Consistent cell borders
+          '&:not(:last-child)': {
+            borderRight: '1px solid rgba(255, 165, 0, 0.1)', // Vertical borders between cells
+          },
+        },
+        head: {
+          borderBottom: '2px solid rgba(255, 165, 0, 0.3)', // Stronger border for header
+          fontWeight: 'bold',
         },
       },
     },
@@ -302,11 +323,53 @@ const theme = createTheme({
     MuiListItem: {
       styleOverrides: {
         root: {
+          borderBottom: '1px solid rgba(255, 165, 0, 0.1)', // Subtle border between list items
+          '&:last-child': {
+            borderBottom: 'none', // Remove border from last item
+          },
           '&.Mui-selected': {
             backgroundColor: 'rgba(255, 165, 0, 0.16)',
+            borderLeft: '3px solid #FFA500', // Orange accent for selected items
             '&:hover': {
               backgroundColor: 'rgba(255, 165, 0, 0.2)',
             },
+          },
+          '&:hover': {
+            backgroundColor: 'rgba(255, 165, 0, 0.05)',
+          },
+        },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          borderBottom: '1px solid rgba(255, 165, 0, 0.1)', // Border between menu items
+          '&:last-child': {
+            borderBottom: 'none', // Remove border from last item
+          },
+          '&:hover': {
+            backgroundColor: 'rgba(255, 165, 0, 0.08)',
+          },
+          '&.Mui-selected': {
+            backgroundColor: 'rgba(255, 165, 0, 0.12)',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 165, 0, 0.16)',
+            },
+          },
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#121212', // Dark background for papers
+          color: '#FFFFFF', // White text
+          borderRadius: '8px',
+          border: '1px solid rgba(255, 165, 0, 0.15)', // Subtle border around paper components
+          '&.MuiMenu-paper': {
+            border: '1px solid rgba(255, 165, 0, 0.2)', // Stronger border for dropdown menus
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+            backgroundColor: '#121212',
           },
         },
       },
@@ -384,6 +447,14 @@ function App() {
                       element={
                         <ErrorBoundary>
                           <AdminDashboard />
+                        </ErrorBoundary>
+                      }
+                    />
+                    <Route
+                      path="/admin/demo"
+                      element={
+                        <ErrorBoundary>
+                          <DashboardDemo />
                         </ErrorBoundary>
                       }
                     />

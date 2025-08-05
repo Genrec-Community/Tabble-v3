@@ -20,8 +20,7 @@ import {
   TextField,
   FormControlLabel,
   Switch,
-  Tabs,
-  Tab,
+
   Chip,
   Tooltip,
   CircularProgress,
@@ -39,28 +38,42 @@ import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import PercentIcon from '@mui/icons-material/Percent';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import { adminService } from '../../services/api';
+import AdminPageHeader from '../../components/AdminPageHeader';
 
 // Styled components
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: 'medium',
+  borderBottom: '1px solid rgba(255, 165, 0, 0.15)',
+  borderRight: '1px solid rgba(255, 165, 0, 0.1)',
+  '&:last-child': {
+    borderRight: 'none',
+  },
   '&.MuiTableCell-head': {
     backgroundColor: theme.palette.primary.main,
     color: theme.palette.common.white,
     fontWeight: 'bold',
+    borderBottom: '2px solid rgba(255, 165, 0, 0.3)',
+    borderTop: '1px solid rgba(255, 165, 0, 0.2)',
   },
 }));
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  borderBottom: '1px solid rgba(255, 165, 0, 0.15)',
   '&:nth-of-type(odd)': {
-    backgroundColor: theme.palette.action.hover,
+    backgroundColor: 'rgba(255, 165, 0, 0.03)',
+  },
+  '&:nth-of-type(even)': {
+    backgroundColor: 'rgba(255, 165, 0, 0.01)',
   },
   '&:hover': {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: 'rgba(255, 165, 0, 0.08)',
+    transform: 'translateY(-1px)',
+    boxShadow: '0 2px 8px rgba(255, 165, 0, 0.2)',
   },
-  // hide last border
-  '&:last-child td, &:last-child th': {
-    border: 0,
+  '&:last-child': {
+    borderBottom: 'none',
   },
+  transition: 'all 0.2s ease',
 }));
 
 const SelectionOffers = () => {
@@ -287,56 +300,19 @@ const SelectionOffers = () => {
 
   return (
     <Container>
-      <Box mb={4}>
-        <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
-          Admin Portal
-        </Typography>
-
-        <Tabs value={5} aria-label="admin tabs" sx={{ mb: 3 }}>
-          <Tab
-            label="Dashboard"
-            component={RouterLink}
-            to="/admin"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Manage Dishes"
-            component={RouterLink}
-            to="/admin/dishes"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Manage Offers"
-            component={RouterLink}
-            to="/admin/offers"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Today's Special"
-            component={RouterLink}
-            to="/admin/specials"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Loyalty Program"
-            component={RouterLink}
-            to="/admin/loyalty"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Selection Offers"
-            component={RouterLink}
-            to="/admin/selection-offers"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Completed Orders"
-            component={RouterLink}
-            to="/admin/completed-orders"
-            sx={{ fontWeight: 'medium' }}
-          />
-        </Tabs>
-      </Box>
+      <AdminPageHeader
+        title="Selection Offers"
+        subtitle="Manage special offers and promotions"
+        icon={<LocalOfferIcon />}
+        actions={[
+          {
+            label: 'Add New Offer',
+            icon: <AddIcon />,
+            onClick: () => setDialogOpen(true),
+            variant: 'contained'
+          }
+        ]}
+      />
 
       <Paper elevation={2} sx={{ p: 3, borderRadius: 2, mb: 4 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -385,7 +361,16 @@ const SelectionOffers = () => {
             No selection offers have been created yet. Add your first offer to start providing discounts based on order amounts.
           </Alert>
         ) : (
-          <TableContainer>
+          <TableContainer
+            component={Paper}
+            sx={{
+              borderRadius: '12px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              border: '2px solid rgba(255, 165, 0, 0.2)',
+              overflow: 'hidden',
+              backgroundColor: '#121212',
+            }}
+          >
             <Table>
               <TableHead>
                 <TableRow>

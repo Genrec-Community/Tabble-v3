@@ -95,10 +95,7 @@ const HeroBanner = ({ tableNumber, uniqueId, databaseName }) => {
                 <PlaceIcon sx={{ mr: 0.5, fontSize: '1rem', color: '#FFA500' }} />
                 <Typography variant="body2">Table #{tableNumber}</Typography>
               </Box>
-              <Box display="flex" alignItems="center">
-                <Rating value={4.9} readOnly precision={0.5} size="small" sx={{ mr: 0.5, color: '#FFA500' }} />
-                <Typography variant="body2">4.9 (150+ reviews)</Typography>
-              </Box>
+              
               <Chip
                 label={uniqueId}
                 size="small"

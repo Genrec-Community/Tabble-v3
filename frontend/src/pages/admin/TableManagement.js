@@ -22,8 +22,7 @@ import {
   Card,
   CardContent,
   CardActions,
-  Tabs,
-  Tab
+
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
@@ -32,6 +31,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import TableRestaurantIcon from '@mui/icons-material/TableRestaurant';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { adminService } from '../../services/api';
+import AdminPageHeader from '../../components/AdminPageHeader';
 
 // Styled components
 const TableCard = styled(Card)(({ theme, occupied }) => ({
@@ -39,11 +39,32 @@ const TableCard = styled(Card)(({ theme, occupied }) => ({
   display: 'flex',
   flexDirection: 'column',
   transition: 'all 0.3s ease',
-  border: occupied ? `2px solid ${theme.palette.error.main}` : `2px solid ${theme.palette.success.main}`,
+  border: occupied
+    ? `3px solid ${theme.palette.error.main}`
+    : `3px solid ${theme.palette.success.main}`,
+  borderRadius: '12px',
+  backgroundColor: '#121212',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
   '&:hover': {
     transform: 'translateY(-5px)',
-    boxShadow: theme.shadows[10],
+    boxShadow: occupied
+      ? '0 8px 24px rgba(244, 67, 54, 0.3)'
+      : '0 8px 24px rgba(77, 170, 87, 0.3)',
+    borderWidth: '4px',
   },
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '4px',
+    background: occupied
+      ? `linear-gradient(90deg, ${theme.palette.error.main}, ${theme.palette.error.light})`
+      : `linear-gradient(90deg, ${theme.palette.success.main}, ${theme.palette.success.light})`,
+    borderRadius: '12px 12px 0 0',
+  },
+  position: 'relative',
 }));
 
 const TableManagement = () => {
@@ -379,100 +400,37 @@ const TableManagement = () => {
           Admin Portal
         </Typography>
 
-        <Tabs value={7} aria-label="admin tabs" sx={{ mb: 3 }}>
-          <Tab
-            label="Dashboard"
-            component={RouterLink}
-            to="/admin"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Manage Dishes"
-            component={RouterLink}
-            to="/admin/dishes"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Manage Offers"
-            component={RouterLink}
-            to="/admin/offers"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Today's Special"
-            component={RouterLink}
-            to="/admin/specials"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Loyalty Program"
-            component={RouterLink}
-            to="/admin/loyalty"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Selection Offers"
-            component={RouterLink}
-            to="/admin/selection-offers"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Completed Orders"
-            component={RouterLink}
-            to="/admin/completed-orders"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Table Management"
-            component={RouterLink}
-            to="/admin/tables"
-            sx={{ fontWeight: 'medium' }}
-          />
-        </Tabs>
+
       </Box>
 
-      <Paper elevation={2} sx={{ p: 3, borderRadius: 2, mb: 4 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Box display="flex" alignItems="center">
-            <TableRestaurantIcon color="primary" sx={{ fontSize: 32, mr: 2 }} />
-            <Typography variant="h5" component="h2" fontWeight="bold">
-              Table Management
-            </Typography>
-          </Box>
-          <Box>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={handleRefresh}
-              disabled={refreshing}
-              sx={{ mr: 2 }}
-            >
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={handleOpenBatchDialog}
-              sx={{ mr: 2 }}
-            >
-              Add Multiple Tables
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleOpenAddDialog}
-              sx={{
-                borderRadius: '8px',
-                boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
-                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-              }}
-            >
-              Add New Table
-            </Button>
-          </Box>
-        </Box>
+      <AdminPageHeader
+        title="Table Management"
+        subtitle="Manage restaurant tables and their status"
+        icon={<TableRestaurantIcon />}
+        actions={[
+          {
+            label: refreshing ? 'Refreshing...' : 'Refresh',
+            icon: <RefreshIcon />,
+            onClick: handleRefresh,
+            disabled: refreshing,
+            variant: 'outlined'
+          },
+          {
+            label: 'Add Multiple Tables',
+            icon: <AddIcon />,
+            onClick: handleOpenBatchDialog,
+            variant: 'outlined'
+          },
+          {
+            label: 'Add New Table',
+            icon: <AddIcon />,
+            onClick: handleOpenAddDialog,
+            variant: 'contained'
+          }
+        ]}
+      />
 
-        <Divider sx={{ mb: 3 }} />
+      <Paper elevation={2} sx={{ p: 3, borderRadius: 2, mb: 4 }}>
 
         {/* Table Status Summary */}
         <Box mb={4}>

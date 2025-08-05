@@ -20,8 +20,7 @@ import {
   TextField,
   FormControlLabel,
   Switch,
-  Tabs,
-  Tab,
+
   Chip,
   Tooltip,
   CircularProgress,
@@ -36,7 +35,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CardMembershipIcon from '@mui/icons-material/CardMembership';
 import PercentIcon from '@mui/icons-material/Percent';
+import LoyaltyIcon from '@mui/icons-material/Loyalty';
 import { adminService } from '../../services/api';
+import AdminPageHeader from '../../components/AdminPageHeader';
 
 // Styled components
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -282,50 +283,19 @@ const LoyaltyProgram = () => {
 
   return (
     <Container>
-      <Box mb={4}>
-        <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
-          Admin Portal
-        </Typography>
-
-        <Tabs value={4} aria-label="admin tabs" sx={{ mb: 3 }}>
-          <Tab
-            label="Dashboard"
-            component={RouterLink}
-            to="/admin"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Manage Dishes"
-            component={RouterLink}
-            to="/admin/dishes"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Manage Offers"
-            component={RouterLink}
-            to="/admin/offers"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Today's Special"
-            component={RouterLink}
-            to="/admin/specials"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Loyalty Program"
-            component={RouterLink}
-            to="/admin/loyalty"
-            sx={{ fontWeight: 'medium' }}
-          />
-          <Tab
-            label="Completed Orders"
-            component={RouterLink}
-            to="/admin/completed-orders"
-            sx={{ fontWeight: 'medium' }}
-          />
-        </Tabs>
-      </Box>
+      <AdminPageHeader
+        title="Loyalty Program"
+        subtitle="Manage customer loyalty rewards and programs"
+        icon={<LoyaltyIcon />}
+        actions={[
+          {
+            label: 'Add New Program',
+            icon: <AddIcon />,
+            onClick: () => setDialogOpen(true),
+            variant: 'contained'
+          }
+        ]}
+      />
 
       <Paper elevation={2} sx={{ p: 3, borderRadius: 2, mb: 4 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
