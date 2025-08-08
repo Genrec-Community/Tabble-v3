@@ -7,7 +7,7 @@ import shutil
 from datetime import datetime, timezone
 from ..utils.pdf_generator import generate_bill_pdf, generate_multi_order_bill_pdf
 
-from ..database import get_db, Order, Dish, OrderItem, Person, Settings, get_session_db, get_session_current_database
+from ..database import get_db, Order, Dish, OrderItem, Person, Settings, get_session_db, get_session_current_database, get_hotel_id_from_request
 from ..models.order import Order as OrderModel
 from ..models.dish import Dish as DishModel, DishCreate, DishUpdate
 from ..middleware import get_session_id
@@ -28,7 +28,9 @@ def get_session_database(request: Request):
 # Get all orders with customer information
 @router.get("/orders", response_model=List[OrderModel])
 def get_all_orders(request: Request, status: str = None, db: Session = Depends(get_session_database)):
-    query = db.query(Order)
+    hotel_id = get_hotel_id_from_request(request)
+
+    query = db.query(Order).filter(Order.hotel_id == hotel_id)
 
     if status:
         query = query.filter(Order.status == status)
@@ -39,7 +41,10 @@ def get_all_orders(request: Request, status: str = None, db: Session = Depends(g
     # Load person information for each order
     for order in orders:
         if order.person_id:
-            person = db.query(Person).filter(Person.id == order.person_id).first()
+            person = db.query(Person).filter(
+                Person.hotel_id == hotel_id,
+                Person.id == order.person_id
+            ).first()
             if person:
                 # Add person information to the order
                 order.person_name = person.username
@@ -48,7 +53,10 @@ def get_all_orders(request: Request, status: str = None, db: Session = Depends(g
         # Load dish information for each order item
         for item in order.items:
             if not hasattr(item, "dish") or item.dish is None:
-                dish = db.query(Dish).filter(Dish.id == item.dish_id).first()
+                dish = db.query(Dish).filter(
+                    Dish.hotel_id == hotel_id,
+                    Dish.id == item.dish_id
+                ).first()
                 if dish:
                     item.dish = dish
 
@@ -63,7 +71,12 @@ def get_all_dishes(
     is_special: Optional[int] = None,
     db: Session = Depends(get_session_database),
 ):
-    query = db.query(Dish).filter(Dish.visibility == 1)  # Only visible dishes
+    hotel_id = get_hotel_id_from_request(request)
+
+    query = db.query(Dish).filter(
+        Dish.hotel_id == hotel_id,
+        Dish.visibility == 1
+    )  # Only visible dishes for this hotel
 
     if is_offer is not None:
         query = query.filter(Dish.is_offer == is_offer)
@@ -78,21 +91,36 @@ def get_all_dishes(
 # Get offer dishes (only visible ones)
 @router.get("/api/offers", response_model=List[DishModel])
 def get_offer_dishes(request: Request, db: Session = Depends(get_session_database)):
-    dishes = db.query(Dish).filter(Dish.is_offer == 1, Dish.visibility == 1).all()
+    hotel_id = get_hotel_id_from_request(request)
+    dishes = db.query(Dish).filter(
+        Dish.hotel_id == hotel_id,
+        Dish.is_offer == 1,
+        Dish.visibility == 1
+    ).all()
     return dishes
 
 
 # Get special dishes (only visible ones)
 @router.get("/api/specials", response_model=List[DishModel])
 def get_special_dishes(request: Request, db: Session = Depends(get_session_database)):
-    dishes = db.query(Dish).filter(Dish.is_special == 1, Dish.visibility == 1).all()
+    hotel_id = get_hotel_id_from_request(request)
+    dishes = db.query(Dish).filter(
+        Dish.hotel_id == hotel_id,
+        Dish.is_special == 1,
+        Dish.visibility == 1
+    ).all()
     return dishes
 
 
 # Get dish by ID (only if visible)
 @router.get("/api/dishes/{dish_id}", response_model=DishModel)
 def get_dish(dish_id: int, request: Request, db: Session = Depends(get_session_database)):
-    dish = db.query(Dish).filter(Dish.id == dish_id, Dish.visibility == 1).first()
+    hotel_id = get_hotel_id_from_request(request)
+    dish = db.query(Dish).filter(
+        Dish.hotel_id == hotel_id,
+        Dish.id == dish_id,
+        Dish.visibility == 1
+    ).first()
     if dish is None:
         raise HTTPException(status_code=404, detail="Dish not found")
     return dish
@@ -101,16 +129,24 @@ def get_dish(dish_id: int, request: Request, db: Session = Depends(get_session_d
 # Get all categories
 @router.get("/api/categories")
 def get_all_categories(request: Request, db: Session = Depends(get_session_database)):
-    categories = db.query(Dish.category).distinct().all()
+    hotel_id = get_hotel_id_from_request(request)
+    categories = db.query(Dish.category).filter(
+        Dish.hotel_id == hotel_id
+    ).distinct().all()
     return [category[0] for category in categories]
 
 
 # Create new category
 @router.post("/api/categories")
 def create_category(request: Request, category_name: str = Form(...), db: Session = Depends(get_session_database)):
-    # Check if category already exists
+    hotel_id = get_hotel_id_from_request(request)
+
+    # Check if category already exists for this hotel
     existing_category = (
-        db.query(Dish.category).filter(Dish.category == category_name).first()
+        db.query(Dish.category).filter(
+            Dish.hotel_id == hotel_id,
+            Dish.category == category_name
+        ).first()
     )
     if existing_category:
         raise HTTPException(status_code=400, detail="Category already exists")
@@ -134,11 +170,14 @@ async def create_dish(
     image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_session_database),
 ):
+    hotel_id = get_hotel_id_from_request(request)
+
     # Use new category if provided, otherwise use selected category
     final_category = new_category if new_category else category
 
     # Create dish object
     db_dish = Dish(
+        hotel_id=hotel_id,
         name=name,
         description=description,
         category=final_category,
@@ -156,21 +195,22 @@ async def create_dish(
 
     # Handle image upload if provided
     if image:
-        # Get current database name for organizing images
-        session_id = get_session_id(request)
-        current_db = get_session_current_database(session_id)
+        # Get hotel info for organizing images
+        from ..database import Hotel
+        hotel = db.query(Hotel).filter(Hotel.id == hotel_id).first()
+        hotel_name_for_path = hotel.hotel_name if hotel else f"hotel_{hotel_id}"
 
-        # Create directory structure: app/static/images/dishes/{db_name}
-        db_images_dir = f"app/static/images/dishes/{current_db}"
-        os.makedirs(db_images_dir, exist_ok=True)
+        # Create directory structure: app/static/images/dishes/{hotel_name}
+        hotel_images_dir = f"app/static/images/dishes/{hotel_name_for_path}"
+        os.makedirs(hotel_images_dir, exist_ok=True)
 
-        # Save image with database-specific path
-        image_path = f"{db_images_dir}/{db_dish.id}_{image.filename}"
+        # Save image with hotel-specific path
+        image_path = f"{hotel_images_dir}/{db_dish.id}_{image.filename}"
         with open(image_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
 
         # Update dish with image path (URL path for serving)
-        db_dish.image_path = f"/static/images/dishes/{current_db}/{db_dish.id}_{image.filename}"
+        db_dish.image_path = f"/static/images/dishes/{hotel_name_for_path}/{db_dish.id}_{image.filename}"
         db.commit()
         db.refresh(db_dish)
 
@@ -194,8 +234,13 @@ async def update_dish(
     image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_session_database),
 ):
-    # Get existing dish
-    db_dish = db.query(Dish).filter(Dish.id == dish_id).first()
+    hotel_id = get_hotel_id_from_request(request)
+
+    # Get existing dish for this hotel
+    db_dish = db.query(Dish).filter(
+        Dish.hotel_id == hotel_id,
+        Dish.id == dish_id
+    ).first()
     if db_dish is None:
         raise HTTPException(status_code=404, detail="Dish not found")
 
@@ -250,7 +295,13 @@ async def update_dish(
 # Soft delete dish (set visibility to 0)
 @router.delete("/api/dishes/{dish_id}")
 def delete_dish(dish_id: int, request: Request, db: Session = Depends(get_session_database)):
-    db_dish = db.query(Dish).filter(Dish.id == dish_id, Dish.visibility == 1).first()
+    hotel_id = get_hotel_id_from_request(request)
+
+    db_dish = db.query(Dish).filter(
+        Dish.hotel_id == hotel_id,
+        Dish.id == dish_id,
+        Dish.visibility == 1
+    ).first()
     if db_dish is None:
         raise HTTPException(status_code=404, detail="Dish not found")
 

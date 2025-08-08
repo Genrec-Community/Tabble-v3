@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 import uuid
 from datetime import datetime, timezone, timedelta
 
-from ..database import get_db, Dish, Order, OrderItem, Person, get_session_db
+from ..database import get_db, Dish, Order, OrderItem, Person, get_session_db, get_hotel_id_from_request
 from ..models.dish import Dish as DishModel
 from ..models.order import OrderCreate, Order as OrderModel
 from ..models.user import (
@@ -34,39 +34,67 @@ def get_session_database(request: Request):
 # Get all dishes for menu (only visible ones)
 @router.get("/api/menu", response_model=List[DishModel])
 def get_menu(request: Request, category: str = None, db: Session = Depends(get_session_database)):
+    hotel_id = get_hotel_id_from_request(request)
+
     if category:
-        dishes = db.query(Dish).filter(Dish.category == category, Dish.visibility == 1).all()
+        dishes = db.query(Dish).filter(
+            Dish.hotel_id == hotel_id,
+            Dish.category == category,
+            Dish.visibility == 1
+        ).all()
     else:
-        dishes = db.query(Dish).filter(Dish.visibility == 1).all()
+        dishes = db.query(Dish).filter(
+            Dish.hotel_id == hotel_id,
+            Dish.visibility == 1
+        ).all()
     return dishes
 
 
 # Get offer dishes (only visible ones)
 @router.get("/api/offers", response_model=List[DishModel])
 def get_offers(request: Request, db: Session = Depends(get_session_database)):
-    dishes = db.query(Dish).filter(Dish.is_offer == 1, Dish.visibility == 1).all()
+    hotel_id = get_hotel_id_from_request(request)
+    dishes = db.query(Dish).filter(
+        Dish.hotel_id == hotel_id,
+        Dish.is_offer == 1,
+        Dish.visibility == 1
+    ).all()
     return dishes
 
 
 # Get special dishes (only visible ones)
 @router.get("/api/specials", response_model=List[DishModel])
 def get_specials(request: Request, db: Session = Depends(get_session_database)):
-    dishes = db.query(Dish).filter(Dish.is_special == 1, Dish.visibility == 1).all()
+    hotel_id = get_hotel_id_from_request(request)
+    dishes = db.query(Dish).filter(
+        Dish.hotel_id == hotel_id,
+        Dish.is_special == 1,
+        Dish.visibility == 1
+    ).all()
     return dishes
 
 
 # Get all dish categories (only from visible dishes)
 @router.get("/api/categories")
 def get_categories(request: Request, db: Session = Depends(get_session_database)):
-    categories = db.query(Dish.category).filter(Dish.visibility == 1).distinct().all()
+    hotel_id = get_hotel_id_from_request(request)
+    categories = db.query(Dish.category).filter(
+        Dish.hotel_id == hotel_id,
+        Dish.visibility == 1
+    ).distinct().all()
     return [category[0] for category in categories]
 
 
 # Register a new user or update existing user
 @router.post("/api/register", response_model=PersonModel)
 def register_user(user: PersonCreate, request: Request, db: Session = Depends(get_session_database)):
-    # Check if user already exists
-    db_user = db.query(Person).filter(Person.username == user.username).first()
+    hotel_id = get_hotel_id_from_request(request)
+
+    # Check if user already exists for this hotel
+    db_user = db.query(Person).filter(
+        Person.hotel_id == hotel_id,
+        Person.username == user.username
+    ).first()
 
     if db_user:
         # Update existing user's last visit time (visit count updated only when order is placed)
@@ -77,6 +105,7 @@ def register_user(user: PersonCreate, request: Request, db: Session = Depends(ge
     else:
         # Create new user (visit count will be incremented when first order is placed)
         db_user = Person(
+            hotel_id=hotel_id,
             username=user.username,
             password=user.password,  # In a real app, you should hash this password
             visit_count=0,
@@ -91,8 +120,13 @@ def register_user(user: PersonCreate, request: Request, db: Session = Depends(ge
 # Login user
 @router.post("/api/login", response_model=Dict[str, Any])
 def login_user(user_data: PersonLogin, request: Request, db: Session = Depends(get_session_database)):
-    # Find user by username
-    db_user = db.query(Person).filter(Person.username == user_data.username).first()
+    hotel_id = get_hotel_id_from_request(request)
+
+    # Find user by username for this hotel
+    db_user = db.query(Person).filter(
+        Person.hotel_id == hotel_id,
+        Person.username == user_data.username
+    ).first()
 
     if not db_user:
         raise HTTPException(
@@ -125,10 +159,15 @@ def login_user(user_data: PersonLogin, request: Request, db: Session = Depends(g
 def create_order(
     order: OrderCreate, request: Request, person_id: int = None, db: Session = Depends(get_session_database)
 ):
+    hotel_id = get_hotel_id_from_request(request)
+
     # If person_id is not provided but we have a username/password, try to find or create the user
     if not person_id and hasattr(order, "username") and hasattr(order, "password"):
-        # Check if user exists
-        db_user = db.query(Person).filter(Person.username == order.username).first()
+        # Check if user exists for this hotel
+        db_user = db.query(Person).filter(
+            Person.hotel_id == hotel_id,
+            Person.username == order.username
+        ).first()
 
         if db_user:
             # Update existing user's visit count
@@ -139,6 +178,7 @@ def create_order(
         else:
             # Create new user (visit count starts at 1 since they're placing their first order)
             db_user = Person(
+                hotel_id=hotel_id,
                 username=order.username,
                 password=order.password,
                 visit_count=1,
@@ -150,7 +190,10 @@ def create_order(
             person_id = db_user.id
     elif person_id:
         # If person_id is provided (normal flow), increment visit count for that user
-        db_user = db.query(Person).filter(Person.id == person_id).first()
+        db_user = db.query(Person).filter(
+            Person.hotel_id == hotel_id,
+            Person.id == person_id
+        ).first()
         if db_user:
             db_user.visit_count += 1
             db_user.last_visit = datetime.now(timezone.utc)
@@ -158,6 +201,7 @@ def create_order(
 
     # Create order
     db_order = Order(
+        hotel_id=hotel_id,
         table_number=order.table_number,
         unique_id=order.unique_id,
         person_id=person_id,  # Link order to person if provided
@@ -170,7 +214,10 @@ def create_order(
     # Mark the table as occupied
     from ..database import Table
 
-    db_table = db.query(Table).filter(Table.table_number == order.table_number).first()
+    db_table = db.query(Table).filter(
+        Table.hotel_id == hotel_id,
+        Table.table_number == order.table_number
+    ).first()
     if db_table:
         db_table.is_occupied = True
         db_table.current_order_id = db_order.id
@@ -178,15 +225,20 @@ def create_order(
 
     # Create order items
     for item in order.items:
-        # Get the dish to include its information
-        dish = db.query(Dish).filter(Dish.id == item.dish_id).first()
+        # Get the dish to include its information and verify it belongs to this hotel
+        dish = db.query(Dish).filter(
+            Dish.hotel_id == hotel_id,
+            Dish.id == item.dish_id
+        ).first()
         if not dish:
-            continue  # Skip if dish doesn't exist
+            continue  # Skip if dish doesn't exist or doesn't belong to this hotel
 
         db_item = OrderItem(
+            hotel_id=hotel_id,
             order_id=db_order.id,
             dish_id=item.dish_id,
             quantity=item.quantity,
+            price=dish.price,  # Store price at time of order
             remarks=item.remarks,
         )
         db.add(db_item)
@@ -200,15 +252,23 @@ def create_order(
 # Get order status
 @router.get("/api/orders/{order_id}", response_model=OrderModel)
 def get_order(order_id: int, request: Request, db: Session = Depends(get_session_database)):
+    hotel_id = get_hotel_id_from_request(request)
+
     # Use joinedload to load the dish relationship for each order item
-    order = db.query(Order).filter(Order.id == order_id).first()
+    order = db.query(Order).filter(
+        Order.hotel_id == hotel_id,
+        Order.id == order_id
+    ).first()
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found")
 
     # Explicitly load dish information for each order item
     for item in order.items:
         if not hasattr(item, "dish") or item.dish is None:
-            dish = db.query(Dish).filter(Dish.id == item.dish_id).first()
+            dish = db.query(Dish).filter(
+                Dish.hotel_id == hotel_id,
+                Dish.id == item.dish_id
+            ).first()
             if dish:
                 item.dish = dish
 
@@ -218,10 +278,15 @@ def get_order(order_id: int, request: Request, db: Session = Depends(get_session
 # Get orders by person_id
 @router.get("/api/person/{person_id}/orders", response_model=List[OrderModel])
 def get_person_orders(person_id: int, request: Request, db: Session = Depends(get_session_database)):
-    # Get all orders for a specific person
+    hotel_id = get_hotel_id_from_request(request)
+
+    # Get all orders for a specific person in this hotel
     orders = (
         db.query(Order)
-        .filter(Order.person_id == person_id)
+        .filter(
+            Order.hotel_id == hotel_id,
+            Order.person_id == person_id
+        )
         .order_by(Order.created_at.desc())
         .all()
     )
@@ -230,7 +295,10 @@ def get_person_orders(person_id: int, request: Request, db: Session = Depends(ge
     for order in orders:
         for item in order.items:
             if not hasattr(item, "dish") or item.dish is None:
-                dish = db.query(Dish).filter(Dish.id == item.dish_id).first()
+                dish = db.query(Dish).filter(
+                    Dish.hotel_id == hotel_id,
+                    Dish.id == item.dish_id
+                ).first()
                 if dish:
                     item.dish = dish
 
@@ -240,9 +308,14 @@ def get_person_orders(person_id: int, request: Request, db: Session = Depends(ge
 # Request payment for order
 @router.put("/api/orders/{order_id}/payment")
 def request_payment(order_id: int, request: Request, db: Session = Depends(get_session_database)):
+    hotel_id = get_hotel_id_from_request(request)
+
     try:
         # Check if order exists and is not already paid
-        db_order = db.query(Order).filter(Order.id == order_id).first()
+        db_order = db.query(Order).filter(
+            Order.hotel_id == hotel_id,
+            Order.id == order_id
+        ).first()
         if db_order is None:
             raise HTTPException(status_code=404, detail="Order not found")
 
@@ -302,7 +375,12 @@ def request_payment(order_id: int, request: Request, db: Session = Depends(get_s
 # Cancel order
 @router.put("/api/orders/{order_id}/cancel")
 def cancel_order(order_id: int, request: Request, db: Session = Depends(get_session_database)):
-    db_order = db.query(Order).filter(Order.id == order_id).first()
+    hotel_id = get_hotel_id_from_request(request)
+
+    db_order = db.query(Order).filter(
+        Order.hotel_id == hotel_id,
+        Order.id == order_id
+    ).first()
     if db_order is None:
         raise HTTPException(status_code=404, detail="Order not found")
 
@@ -392,8 +470,12 @@ def verify_otp(verify_request: PhoneVerifyRequest, request: Request, db: Session
             verify_request.verification_code
         )
 
-        # Check if user exists in database
-        user = db.query(Person).filter(Person.phone_number == verify_request.phone_number).first()
+        # Check if user exists in database for this hotel
+        hotel_id = get_hotel_id_from_request(request)
+        user = db.query(Person).filter(
+            Person.hotel_id == hotel_id,
+            Person.phone_number == verify_request.phone_number
+        ).first()
 
         if user:
             print(f"Existing user found: {user.username}")
@@ -435,10 +517,14 @@ def register_phone_user(user_request: UsernameRequest, request: Request, db: Ses
     Register a new user after phone authentication
     """
     try:
+        hotel_id = get_hotel_id_from_request(request)
         print(f"Registering new user with phone: {user_request.phone_number}, username: {user_request.username}")
 
-        # Check if username already exists
-        existing_user = db.query(Person).filter(Person.username == user_request.username).first()
+        # Check if username already exists for this hotel
+        existing_user = db.query(Person).filter(
+            Person.hotel_id == hotel_id,
+            Person.username == user_request.username
+        ).first()
         if existing_user:
             print(f"Username already exists: {user_request.username}")
             raise HTTPException(
@@ -446,8 +532,11 @@ def register_phone_user(user_request: UsernameRequest, request: Request, db: Ses
                 detail="Username already exists"
             )
 
-        # Check if phone number already exists
-        phone_user = db.query(Person).filter(Person.phone_number == user_request.phone_number).first()
+        # Check if phone number already exists for this hotel
+        phone_user = db.query(Person).filter(
+            Person.hotel_id == hotel_id,
+            Person.phone_number == user_request.phone_number
+        ).first()
         if phone_user:
             print(f"Phone number already registered: {user_request.phone_number}")
             raise HTTPException(
@@ -457,6 +546,7 @@ def register_phone_user(user_request: UsernameRequest, request: Request, db: Ses
 
         # Create new user (visit count will be incremented when first order is placed)
         new_user = Person(
+            hotel_id=hotel_id,
             username=user_request.username,
             password="",  # No password needed for phone auth
             phone_number=user_request.phone_number,

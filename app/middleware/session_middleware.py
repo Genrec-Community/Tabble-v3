@@ -44,8 +44,11 @@ class SessionMiddleware(BaseHTTPMiddleware):
         # Skip session validation for certain endpoints
         skip_validation_endpoints = [
             '/settings/databases',
+            '/settings/hotels',
             '/settings/switch-database',
-            '/settings/current-database'
+            '/settings/switch-hotel',
+            '/settings/current-database',
+            '/settings/current-hotel'
         ]
 
         # Skip validation for admin and chef routes - they handle their own database selection
@@ -65,62 +68,46 @@ class SessionMiddleware(BaseHTTPMiddleware):
         )
         
         if should_validate:
-            # Check if session has a valid database connection
-            current_db = db_manager.get_current_database(session_id)
-            if not current_db or current_db == db_manager.default_database:
-                # Check if there's a stored database in headers
-                stored_database = request.headers.get('x-database-name')
-                stored_password = request.headers.get('x-database-password')
-                
-                if stored_database and stored_password:
-                    # Try to verify and switch to stored database
+            # Check if session has a valid hotel context
+            current_hotel_id = db_manager.get_current_hotel_id(session_id)
+            if not current_hotel_id:
+                # Check if there's stored hotel credentials in headers
+                stored_hotel_name = request.headers.get('x-hotel-name')
+                stored_password = request.headers.get('x-hotel-password')
+
+                if stored_hotel_name and stored_password:
+                    # Try to verify and set hotel context
                     try:
-                        # Import here to avoid circular imports
-                        import csv
-                        import os
-                        
-                        # Verify database credentials
-                        if os.path.exists("hotels.csv"):
-                            with open("hotels.csv", "r") as file:
-                                reader = csv.DictReader(file)
-                                for row in reader:
-                                    if (row["hotel_database"] == stored_database and 
-                                        row["password"] == stored_password):
-                                        # Valid credentials, switch database
-                                        db_manager.switch_database(session_id, stored_database)
-                                        break
-                                else:
-                                    # Invalid credentials
-                                    return JSONResponse(
-                                        status_code=401,
-                                        content={
-                                            "detail": "Invalid database credentials",
-                                            "error_code": "DATABASE_AUTH_FAILED"
-                                        }
-                                    )
+                        # Authenticate hotel using the database manager
+                        hotel_id = db_manager.authenticate_hotel(stored_hotel_name, stored_password)
+
+                        if hotel_id:
+                            # Valid credentials, set hotel context
+                            db_manager.set_hotel_context(session_id, hotel_id)
                         else:
+                            # Invalid credentials
                             return JSONResponse(
-                                status_code=500,
+                                status_code=401,
                                 content={
-                                    "detail": "Database configuration not found",
-                                    "error_code": "DATABASE_CONFIG_MISSING"
+                                    "detail": "Invalid hotel credentials",
+                                    "error_code": "HOTEL_AUTH_FAILED"
                                 }
                             )
                     except Exception as e:
                         return JSONResponse(
                             status_code=500,
                             content={
-                                "detail": f"Database verification failed: {str(e)}",
-                                "error_code": "DATABASE_VERIFICATION_ERROR"
+                                "detail": f"Hotel authentication failed: {str(e)}",
+                                "error_code": "HOTEL_VERIFICATION_ERROR"
                             }
                         )
                 else:
-                    # No database selected
+                    # No hotel selected
                     return JSONResponse(
                         status_code=400,
                         content={
-                            "detail": "No database selected. Please select a database first.",
-                            "error_code": "DATABASE_NOT_SELECTED"
+                            "detail": "No hotel selected. Please select a hotel first.",
+                            "error_code": "HOTEL_NOT_SELECTED"
                         }
                     )
         

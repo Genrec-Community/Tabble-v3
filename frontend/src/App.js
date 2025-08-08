@@ -14,6 +14,9 @@ import { queryClient } from './services/queryClient';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSpinner, { PageLoadingSpinner } from './components/LoadingSpinner';
 
+// Authentication Wrapper
+import AuthWrapper from './components/AuthWrapper';
+
 // Layouts (not lazy loaded as they're used frequently)
 import Layout from './components/Layout';
 import AdminLayout from './components/AdminLayout';
@@ -384,9 +387,10 @@ function App() {
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <ErrorBoundary>
-            <Router>
-              <Suspense fallback={<PageLoadingSpinner message="Loading application..." />}>
-                <Routes>
+            <AuthWrapper>
+              <Router>
+                <Suspense fallback={<PageLoadingSpinner message="Loading application..." />}>
+                  <Routes>
                   {/* Main Layout Routes */}
                   <Route element={<Layout />}>
                     <Route
@@ -560,6 +564,7 @@ function App() {
                 </Routes>
               </Suspense>
             </Router>
+            </AuthWrapper>
           </ErrorBoundary>
         </ThemeProvider>
         {/* React Query Devtools - only in development */}

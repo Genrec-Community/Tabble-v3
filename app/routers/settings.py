@@ -7,8 +7,9 @@ import csv
 from datetime import datetime, timezone
 
 from ..database import (
-    get_db, Settings, switch_database, get_current_database,
-    get_session_db, switch_session_database, get_session_current_database
+    get_db, Settings, Hotel, switch_database, get_current_database,
+    get_session_db, get_session_current_database, set_session_hotel_context,
+    get_session_hotel_id, authenticate_hotel_session
 )
 from ..models.settings import Settings as SettingsModel, SettingsUpdate
 from ..models.database_config import DatabaseEntry, DatabaseList, DatabaseSelectRequest, DatabaseSelectResponse
@@ -27,73 +28,108 @@ def get_session_database(request: Request):
     return next(get_session_db(session_id))
 
 
-# Get available databases from hotels.csv
-@router.get("/databases", response_model=DatabaseList)
-def get_databases():
+# Get available hotels from hotels.csv
+@router.get("/hotels", response_model=DatabaseList)
+def get_hotels():
     try:
-        databases = []
+        hotels = []
         with open("hotels.csv", "r") as file:
             reader = csv.DictReader(file)
             for row in reader:
-                databases.append(DatabaseEntry(
-                    database_name=row["hotel_database"],
+                hotels.append(DatabaseEntry(
+                    database_name=row["hotel_name"],  # Using hotel_name instead of hotel_database
                     password=row["password"]
                 ))
 
-        # Return only database names, not passwords
-        return {"databases": [{"database_name": db.database_name, "password": "********"} for db in databases]}
+        # Return only hotel names, not passwords
+        return {"databases": [{"database_name": hotel.database_name, "password": "********"} for hotel in hotels]}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error reading database configuration: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error reading hotel configuration: {str(e)}")
 
 
-# Get current database name
+# Legacy endpoint for backward compatibility
+@router.get("/databases", response_model=DatabaseList)
+def get_databases():
+    return get_hotels()
+
+
+# Get current hotel info
+@router.get("/current-hotel")
+def get_current_hotel(request: Request):
+    session_id = get_session_id(request)
+    hotel_id = get_session_hotel_id(session_id)
+    if hotel_id:
+        # Get hotel name from database
+        db = next(get_session_database(request))
+        hotel = db.query(Hotel).filter(Hotel.id == hotel_id).first()
+        if hotel:
+            return {"hotel_name": hotel.hotel_name, "hotel_id": hotel.id}
+    return {"hotel_name": None, "hotel_id": None}
+
+
+# Legacy endpoint for backward compatibility
 @router.get("/current-database")
 def get_current_db(request: Request):
     session_id = get_session_id(request)
     return {"database_name": get_session_current_database(session_id)}
 
 
-# Switch database
-@router.post("/switch-database", response_model=DatabaseSelectResponse)
-def select_database(request_data: DatabaseSelectRequest, request: Request):
+# Switch hotel
+@router.post("/switch-hotel", response_model=DatabaseSelectResponse)
+def select_hotel(request_data: DatabaseSelectRequest, request: Request):
     try:
         session_id = get_session_id(request)
 
-        # Verify database exists and password is correct
-        with open("hotels.csv", "r") as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                if row["hotel_database"] == request_data.database_name:
-                    if row["password"] == request_data.password:
-                        # Switch database for this session
-                        success = switch_session_database(session_id, request_data.database_name)
-                        if success:
-                            return {
-                                "success": True,
-                                "message": f"Successfully switched to database: {request_data.database_name}"
-                            }
-                        else:
-                            raise HTTPException(status_code=500, detail="Failed to switch database")
-                    else:
-                        raise HTTPException(status_code=401, detail="Invalid password")
+        # Authenticate hotel using hotel_name and password
+        hotel_id = authenticate_hotel_session(request_data.database_name, request_data.password)
 
-        raise HTTPException(status_code=404, detail=f"Database '{request_data.database_name}' not found")
+        if hotel_id:
+            # Set hotel context for this session
+            success = set_session_hotel_context(session_id, hotel_id)
+            if success:
+                return {
+                    "success": True,
+                    "message": f"Successfully switched to hotel: {request_data.database_name}"
+                }
+            else:
+                raise HTTPException(status_code=500, detail="Failed to set hotel context")
+        else:
+            raise HTTPException(status_code=401, detail="Invalid hotel credentials")
+
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error switching database: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error switching hotel: {str(e)}")
+
+
+# Legacy endpoint for backward compatibility
+@router.post("/switch-database", response_model=DatabaseSelectResponse)
+def select_database(request_data: DatabaseSelectRequest, request: Request):
+    return select_hotel(request_data, request)
 
 
 # Get hotel settings
 @router.get("/", response_model=SettingsModel)
 def get_settings(request: Request, db: Session = Depends(get_session_database)):
-    # Get the first settings record or create one if it doesn't exist
-    settings = db.query(Settings).first()
+    session_id = get_session_id(request)
+    hotel_id = get_session_hotel_id(session_id)
+
+    if not hotel_id:
+        raise HTTPException(status_code=400, detail="No hotel context set")
+
+    # Get settings for the current hotel
+    settings = db.query(Settings).filter(Settings.hotel_id == hotel_id).first()
 
     if not settings:
-        # Create default settings
+        # Get hotel info for default settings
+        hotel = db.query(Hotel).filter(Hotel.id == hotel_id).first()
+        if not hotel:
+            raise HTTPException(status_code=404, detail="Hotel not found")
+
+        # Create default settings for this hotel
         settings = Settings(
-            hotel_name="Tabble Hotel",
+            hotel_id=hotel_id,
+            hotel_name=hotel.hotel_name,
             address="123 Main Street, City",
             contact_number="+1 123-456-7890",
             email="info@tabblehotel.com",
@@ -117,11 +153,18 @@ async def update_settings(
     logo: Optional[UploadFile] = File(None),
     db: Session = Depends(get_session_database)
 ):
-    # Get existing settings or create new
-    settings = db.query(Settings).first()
+    session_id = get_session_id(request)
+    hotel_id = get_session_hotel_id(session_id)
+
+    if not hotel_id:
+        raise HTTPException(status_code=400, detail="No hotel context set")
+
+    # Get existing settings for this hotel or create new
+    settings = db.query(Settings).filter(Settings.hotel_id == hotel_id).first()
 
     if not settings:
         settings = Settings(
+            hotel_id=hotel_id,
             hotel_name=hotel_name,
             address=address,
             contact_number=contact_number,
@@ -139,21 +182,21 @@ async def update_settings(
 
     # Handle logo upload if provided
     if logo:
-        # Get current database name for organizing logos
-        session_id = get_session_id(request)
-        current_db = get_session_current_database(session_id)
+        # Get hotel info for organizing logos
+        hotel = db.query(Hotel).filter(Hotel.id == hotel_id).first()
+        hotel_name_for_path = hotel.hotel_name if hotel else f"hotel_{hotel_id}"
 
-        # Create directory structure: app/static/images/logo/{db_name}
-        db_logo_dir = f"app/static/images/logo/{current_db}"
-        os.makedirs(db_logo_dir, exist_ok=True)
+        # Create directory structure: app/static/images/logo/{hotel_name}
+        hotel_logo_dir = f"app/static/images/logo/{hotel_name_for_path}"
+        os.makedirs(hotel_logo_dir, exist_ok=True)
 
-        # Save logo with database-specific path
-        logo_path = f"{db_logo_dir}/hotel_logo_{logo.filename}"
+        # Save logo with hotel-specific path
+        logo_path = f"{hotel_logo_dir}/hotel_logo_{logo.filename}"
         with open(logo_path, "wb") as buffer:
             shutil.copyfileobj(logo.file, buffer)
 
         # Update settings with logo path (URL path for serving)
-        settings.logo_path = f"/static/images/logo/{current_db}/hotel_logo_{logo.filename}"
+        settings.logo_path = f"/static/images/logo/{hotel_name_for_path}/hotel_logo_{logo.filename}"
 
     # Update timestamp
     settings.updated_at = datetime.now(timezone.utc)

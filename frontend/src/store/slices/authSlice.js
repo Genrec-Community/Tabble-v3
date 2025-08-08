@@ -4,8 +4,10 @@ const initialState = {
   tableNumber: null,
   uniqueId: null,
   userId: null,
-  selectedDatabase: localStorage.getItem('selectedDatabase') || null,
-  databasePassword: localStorage.getItem('databasePassword') || null,
+  selectedHotel: localStorage.getItem('selectedHotel') || localStorage.getItem('selectedDatabase') || null,
+  hotelPassword: localStorage.getItem('hotelPassword') || localStorage.getItem('databasePassword') || null,
+  selectedDatabase: localStorage.getItem('selectedDatabase') || null, // Legacy support
+  databasePassword: localStorage.getItem('databasePassword') || null, // Legacy support
   isAuthenticated: false,
   sessionId: localStorage.getItem('tabbleSessionId') || null,
 };
@@ -22,22 +24,48 @@ const authSlice = createSlice({
       state.isAuthenticated = !!(tableNumber && uniqueId && userId);
     },
 
+    setHotelInfo: (state, action) => {
+      const { hotel, password } = action.payload;
+      state.selectedHotel = hotel;
+      state.hotelPassword = password;
+
+      // Update localStorage
+      if (hotel) {
+        localStorage.setItem('selectedHotel', hotel);
+      } else {
+        localStorage.removeItem('selectedHotel');
+      }
+
+      if (password) {
+        localStorage.setItem('hotelPassword', password);
+      } else {
+        localStorage.removeItem('hotelPassword');
+      }
+    },
+
+    // Legacy method for backward compatibility
     setDatabaseInfo: (state, action) => {
       const { database, password } = action.payload;
       state.selectedDatabase = database;
       state.databasePassword = password;
-      
+      state.selectedHotel = database; // Map to hotel for compatibility
+      state.hotelPassword = password;
+
       // Update localStorage
       if (database) {
         localStorage.setItem('selectedDatabase', database);
+        localStorage.setItem('selectedHotel', database);
       } else {
         localStorage.removeItem('selectedDatabase');
+        localStorage.removeItem('selectedHotel');
       }
-      
+
       if (password) {
         localStorage.setItem('databasePassword', password);
+        localStorage.setItem('hotelPassword', password);
       } else {
         localStorage.removeItem('databasePassword');
+        localStorage.removeItem('hotelPassword');
       }
     },
 
@@ -84,6 +112,7 @@ const authSlice = createSlice({
 
 export const {
   setTableInfo,
+  setHotelInfo,
   setDatabaseInfo,
   setSessionId,
   clearAuth,

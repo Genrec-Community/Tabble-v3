@@ -42,13 +42,13 @@ api.interceptors.request.use(
     // Always include session ID
     config.headers['x-session-id'] = sessionId;
 
-    // Include database credentials if available
-    const selectedDatabase = localStorage.getItem('selectedDatabase');
-    const databasePassword = localStorage.getItem('databasePassword');
+    // Include hotel credentials if available
+    const selectedHotel = localStorage.getItem('selectedHotel') || localStorage.getItem('selectedDatabase');
+    const hotelPassword = localStorage.getItem('hotelPassword') || localStorage.getItem('databasePassword');
 
-    if (selectedDatabase && databasePassword) {
-      config.headers['x-database-name'] = selectedDatabase;
-      config.headers['x-database-password'] = databasePassword;
+    if (selectedHotel && hotelPassword) {
+      config.headers['x-hotel-name'] = selectedHotel;
+      config.headers['x-hotel-password'] = hotelPassword;
     }
 
     return config;
@@ -70,22 +70,27 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Handle database-related errors
+    // Handle hotel-related errors
     if (error.response?.data?.error_code) {
       const errorCode = error.response.data.error_code;
 
-      if (errorCode === 'DATABASE_NOT_SELECTED' ||
+      if (errorCode === 'HOTEL_NOT_SELECTED' ||
+          errorCode === 'HOTEL_AUTH_FAILED' ||
+          errorCode === 'HOTEL_VERIFICATION_ERROR' ||
+          errorCode === 'DATABASE_NOT_SELECTED' ||
           errorCode === 'DATABASE_AUTH_FAILED' ||
           errorCode === 'DATABASE_CONFIG_MISSING') {
-        // Clear database selection and redirect to setup
+        // Clear hotel/database selection and redirect to setup
+        localStorage.removeItem('selectedHotel');
+        localStorage.removeItem('hotelPassword');
         localStorage.removeItem('selectedDatabase');
         localStorage.removeItem('databasePassword');
         localStorage.removeItem('tabbleDatabaseSelected');
 
         // Show error message
-        console.error('Database error:', error.response.data.detail);
+        console.error('Hotel authentication error:', error.response.data.detail);
 
-        // Redirect to home for database setup
+        // Redirect to home for hotel setup
         if (window.location.pathname !== '/') {
           window.location.href = '/';
         }
@@ -390,40 +395,57 @@ export const adminService = {
     }
   },
 
-  // Get available databases
-  getDatabases: async () => {
+  // Get available hotels (updated from getDatabases)
+  getHotels: async () => {
     try {
-      const response = await api.get('/settings/databases');
+      const response = await api.get('/settings/hotels');
       return response.data;
     } catch (error) {
-      
       throw error;
     }
   },
 
-  // Get current database
+  // Legacy method for backward compatibility
+  getDatabases: async () => {
+    return adminService.getHotels();
+  },
+
+  // Get current hotel
+  getCurrentHotel: async () => {
+    try {
+      const response = await api.get('/settings/current-hotel');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Legacy method for backward compatibility
   getCurrentDatabase: async () => {
     try {
       const response = await api.get('/settings/current-database');
       return response.data;
     } catch (error) {
-      
       throw error;
     }
   },
 
-  // Switch database
-  switchDatabase: async (databaseName, password) => {
+  // Switch hotel (updated from switchDatabase)
+  switchHotel: async (hotelName, password) => {
     try {
-      const response = await api.post('/settings/switch-database', {
-        database_name: databaseName,
+      const response = await api.post('/settings/switch-hotel', {
+        database_name: hotelName,  // Using database_name field for compatibility
         password: password
       });
       return response.data;
     } catch (error) {
-      
       throw error;
     }
+  },
+
+  // Legacy method for backward compatibility
+  switchDatabase: async (databaseName, password) => {
+    return adminService.switchHotel(databaseName, password);
   },
 
   // Generate bill PDF for a single order

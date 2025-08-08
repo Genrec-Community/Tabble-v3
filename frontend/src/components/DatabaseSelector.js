@@ -13,46 +13,47 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Select
+  Select,
+  Paper
 } from '@mui/material';
 import { adminService } from '../services/api';
 
-const DatabaseSelector = ({ open, onSuccess, title = "Select Database" }) => {
-  const [databases, setDatabases] = useState([]);
-  const [selectedDatabase, setSelectedDatabase] = useState('');
+const DatabaseSelector = ({ open, onSuccess, title = "Select Hotel", fullScreen = false }) => {
+  const [hotels, setHotels] = useState([]);
+  const [selectedHotel, setSelectedHotel] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [fetchingDatabases, setFetchingDatabases] = useState(true);
+  const [fetchingHotels, setFetchingHotels] = useState(true);
 
-  // Fetch available databases when component mounts
+  // Fetch available hotels when component mounts
   useEffect(() => {
     if (open) {
-      fetchDatabases();
+      fetchHotels();
     }
   }, [open]);
 
-  const fetchDatabases = async () => {
+  const fetchHotels = async () => {
     try {
-      setFetchingDatabases(true);
-      const response = await adminService.getDatabases();
-      setDatabases(response.databases || []);
+      setFetchingHotels(true);
+      const response = await adminService.getHotels();
+      setHotels(response.databases || []); // API still returns 'databases' field for compatibility
     } catch (error) {
-      console.error('Error fetching databases:', error);
-      setError('Failed to load available databases');
+      console.error('Error fetching hotels:', error);
+      setError('Failed to load available hotels');
     } finally {
-      setFetchingDatabases(false);
+      setFetchingHotels(false);
     }
   };
 
   const handleConnect = async () => {
-    if (!selectedDatabase) {
-      setError('Please select a database');
+    if (!selectedHotel) {
+      setError('Please select a hotel');
       return;
     }
 
     if (!password) {
-      setError('Please enter the database password');
+      setError('Please enter the hotel password');
       return;
     }
 
@@ -60,25 +61,29 @@ const DatabaseSelector = ({ open, onSuccess, title = "Select Database" }) => {
       setLoading(true);
       setError('');
 
-      const response = await adminService.switchDatabase(selectedDatabase, password);
+      const response = await adminService.switchHotel(selectedHotel, password);
 
       if (response.success) {
-        // Store database credentials in localStorage with page-specific keys
-        localStorage.setItem('selectedDatabase', selectedDatabase);
-        localStorage.setItem('databasePassword', password);
+        // Store hotel credentials in localStorage
+        localStorage.setItem('selectedHotel', selectedHotel);
+        localStorage.setItem('hotelPassword', password);
         localStorage.setItem('tabbleDatabaseSelected', 'true');
 
+        // Legacy support
+        localStorage.setItem('selectedDatabase', selectedHotel);
+        localStorage.setItem('databasePassword', password);
+
         // Call success callback
-        onSuccess(selectedDatabase);
+        onSuccess(selectedHotel);
       } else {
-        setError(response.message || 'Failed to connect to database');
+        setError(response.message || 'Failed to connect to hotel');
       }
     } catch (error) {
-      console.error('Database connection error:', error);
+      console.error('Hotel connection error:', error);
       if (error.response?.status === 401) {
-        setError('Invalid password for the selected database');
+        setError('Invalid password for the selected hotel');
       } else {
-        setError('Failed to connect to database. Please try again.');
+        setError('Failed to connect to hotel. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -90,6 +95,129 @@ const DatabaseSelector = ({ open, onSuccess, title = "Select Database" }) => {
       handleConnect();
     }
   };
+
+  if (fullScreen) {
+    // Render as a full-screen component instead of a dialog
+    return (
+      <Paper
+        sx={{
+          p: 4,
+          borderRadius: 2,
+          border: '2px solid rgba(255, 165, 0, 0.3)',
+          backgroundColor: '#121212',
+          width: '100%',
+          maxWidth: 500,
+        }}
+      >
+        <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <Typography variant="h5" component="div" fontWeight="bold">
+            {title}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Please select your hotel and enter the password
+          </Typography>
+        </Box>
+
+        <Box sx={{
+          pt: 2,
+          border: '1px solid rgba(255, 165, 0, 0.15)',
+          borderRadius: 1,
+          p: 2,
+          backgroundColor: 'rgba(255, 165, 0, 0.02)'
+        }}>
+          {fetchingHotels ? (
+            <Box display="flex" justifyContent="center" my={3}>
+              <CircularProgress color="primary" />
+              <Typography variant="body2" sx={{ ml: 2, alignSelf: 'center' }}>
+                Loading hotels...
+              </Typography>
+            </Box>
+          ) : (
+            <Box component="form" onSubmit={(e) => { e.preventDefault(); handleConnect(); }}>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Select Hotel</InputLabel>
+                <Select
+                  value={selectedHotel}
+                  label="Select Hotel"
+                  onChange={(e) => setSelectedHotel(e.target.value)}
+                  sx={{
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255, 165, 0, 0.3)',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255, 165, 0, 0.5)',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#FFA500',
+                    },
+                  }}
+                >
+                  {hotels.map((hotel) => (
+                    <MenuItem key={hotel.database_name} value={hotel.database_name}>
+                      {hotel.database_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <TextField
+                fullWidth
+                label="Hotel Password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                margin="normal"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: 'rgba(255, 165, 0, 0.3)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(255, 165, 0, 0.5)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#FFA500',
+                    },
+                  },
+                }}
+              />
+
+              {error && (
+                <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
+                  {error}
+                </Alert>
+              )}
+
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                size="large"
+                disabled={loading || fetchingHotels || !selectedHotel || !password}
+                sx={{
+                  mt: 3,
+                  py: 1.5,
+                  backgroundColor: '#FFA500',
+                  color: '#000',
+                  fontWeight: 'bold',
+                  '&:hover': {
+                    backgroundColor: '#FF8C00',
+                  },
+                  '&:disabled': {
+                    backgroundColor: 'rgba(255, 165, 0, 0.3)',
+                    color: 'rgba(0, 0, 0, 0.5)',
+                  },
+                }}
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
+              >
+                {loading ? 'Connecting...' : 'Connect to Hotel'}
+              </Button>
+            </Box>
+          )}
+        </Box>
+      </Paper>
+    );
+  }
 
   return (
     <Dialog
@@ -111,7 +239,7 @@ const DatabaseSelector = ({ open, onSuccess, title = "Select Database" }) => {
           {title}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Please select your hotel database and enter the password
+          Please select your hotel and enter the password
         </Typography>
       </DialogTitle>
 
@@ -122,7 +250,7 @@ const DatabaseSelector = ({ open, onSuccess, title = "Select Database" }) => {
         m: 2,
         backgroundColor: 'rgba(255, 165, 0, 0.02)'
       }}>
-        {fetchingDatabases ? (
+        {fetchingHotels ? (
           <Box display="flex" justifyContent="center" my={3}>
             <CircularProgress />
           </Box>
@@ -175,11 +303,11 @@ const DatabaseSelector = ({ open, onSuccess, title = "Select Database" }) => {
                 },
               }}
             >
-              <InputLabel>Select Database</InputLabel>
+              <InputLabel>Select Hotel</InputLabel>
               <Select
-                value={selectedDatabase}
-                label="Select Database"
-                onChange={(e) => setSelectedDatabase(e.target.value)}
+                value={selectedHotel}
+                label="Select Hotel"
+                onChange={(e) => setSelectedHotel(e.target.value)}
                 disabled={loading}
                 sx={{
                   color: '#FFFFFF',
@@ -218,9 +346,9 @@ const DatabaseSelector = ({ open, onSuccess, title = "Select Database" }) => {
                   },
                 }}
               >
-                {databases.map((db) => (
-                  <MenuItem key={db.database_name} value={db.database_name}>
-                    {db.database_name}
+                {hotels.map((hotel) => (
+                  <MenuItem key={hotel.database_name} value={hotel.database_name}>
+                    {hotel.database_name}
                   </MenuItem>
                 ))}
               </Select>
@@ -228,7 +356,7 @@ const DatabaseSelector = ({ open, onSuccess, title = "Select Database" }) => {
 
             <TextField
               fullWidth
-              label="Database Password"
+              label="Hotel Password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -278,7 +406,7 @@ const DatabaseSelector = ({ open, onSuccess, title = "Select Database" }) => {
           onClick={handleConnect}
           variant="contained"
           fullWidth
-          disabled={loading || fetchingDatabases || !selectedDatabase || !password}
+          disabled={loading || fetchingHotels || !selectedHotel || !password}
           sx={{
             py: 1.5,
             border: '1px solid rgba(255, 165, 0, 0.3)',
@@ -302,7 +430,7 @@ const DatabaseSelector = ({ open, onSuccess, title = "Select Database" }) => {
               Connecting...
             </>
           ) : (
-            'Connect to Database'
+            'Connect to Hotel'
           )}
         </Button>
       </DialogActions>
