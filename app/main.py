@@ -102,28 +102,7 @@ async def admin_dishes_page(request: Request):
     return templates.TemplateResponse("admin/dishes.html", {"request": request})
 
 
-# Analysis page
-@app.get("/analysis", response_class=HTMLResponse)
-async def analysis_page(request: Request):
-    return templates.TemplateResponse("analysis/index.html", {"request": request})
 
-
-# Chef analysis page
-@app.get("/analysis/chef", response_class=HTMLResponse)
-async def chef_analysis_page(request: Request):
-    return templates.TemplateResponse("analysis/chef.html", {"request": request})
-
-
-# Customer analysis page
-@app.get("/analysis/customer", response_class=HTMLResponse)
-async def customer_analysis_page(request: Request):
-    return templates.TemplateResponse("analysis/customer.html", {"request": request})
-
-
-# Dish analysis page
-@app.get("/analysis/dish", response_class=HTMLResponse)
-async def dish_analysis_page(request: Request):
-    return templates.TemplateResponse("analysis/dish.html", {"request": request})
 
 
 if __name__ == "__main__":

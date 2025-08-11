@@ -455,7 +455,19 @@ const DishAnalysis = () => {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={dish.category}
+                            label={(() => {
+                              // Parse categories from JSON format
+                              let dishCategories = [];
+                              try {
+                                dishCategories = JSON.parse(dish.category || '[]');
+                                if (!Array.isArray(dishCategories)) {
+                                  dishCategories = [dish.category];
+                                }
+                              } catch (e) {
+                                dishCategories = dish.category ? [dish.category] : [];
+                              }
+                              return dishCategories.join(', ');
+                            })()}
                             size="small"
                             sx={{
                               bgcolor: 'rgba(255, 165, 0, 0.1)',

@@ -73,14 +73,45 @@ const FeaturedDishes = ({ dishes, currentCategory, handleOpenDialog, theme }) =>
                   <SpecialBadge>
                     <LocalOfferIcon /> Featured
                   </SpecialBadge>
+
+                  {/* Vegetarian/Non-Vegetarian Indicator Overlay */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      backgroundColor: dish.is_vegetarian === 1 ? '#4CAF50' : '#F44336',
+                      border: '2px solid white',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 2
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        backgroundColor: 'white',
+                        opacity: 0.9
+                      }}
+                    />
+                  </Box>
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', width: '65%' }}>
                   <CardContent sx={{ flex: '1 0 auto', p: 3 }}>
                     <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                       <Box>
-                        <Typography variant="h6" fontWeight="bold" gutterBottom>
-                          {dish.name}
-                        </Typography>
+                        <Box display="flex" alignItems="center" gap={1} mb={1}>
+                          <Typography variant="h6" fontWeight="bold">
+                            {dish.name}
+                          </Typography>
+                        </Box>
                         <Typography variant="body2" color="text.secondary" paragraph>
                           {dish.description || 'A delectable dish crafted with the finest ingredients.'}
                         </Typography>

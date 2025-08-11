@@ -46,8 +46,10 @@ const AdminDishes = () => {
     description: '',
     category: '',
     new_category: '',
+    selectedCategories: [],  // For multiple categories
     price: '',
     quantity: '',
+    is_vegetarian: 1,  // Default to vegetarian
     image: null,
     imagePreview: null
   });
@@ -74,8 +76,10 @@ const AdminDishes = () => {
     description: '',
     category: '',
     new_category: '',
+    selectedCategories: [],  // For multiple categories
     price: '',
     quantity: '',
+    is_vegetarian: 1,  // Default to vegetarian
     image: null,
     imagePreview: null
   });
@@ -210,9 +214,11 @@ const AdminDishes = () => {
       const dishData = {
         name: formValues.name,
         description: formValues.description || '',
-        category: isNewCategory ? formValues.new_category : formValues.category,
+        categories: JSON.stringify(formValues.selectedCategories.length > 0 ? formValues.selectedCategories :
+                   [isNewCategory ? formValues.new_category : formValues.category]),
         price: parseFloat(formValues.price),
-        quantity: parseInt(formValues.quantity)
+        quantity: formValues.quantity ? parseInt(formValues.quantity) : 0,
+        is_vegetarian: formValues.is_vegetarian
       };
 
       if (formValues.image) {
@@ -227,8 +233,10 @@ const AdminDishes = () => {
         description: '',
         category: '',
         new_category: '',
+        selectedCategories: [],
         price: '',
         quantity: '',
+        is_vegetarian: 1,
         image: null,
         imagePreview: null
       });
@@ -310,13 +318,26 @@ const AdminDishes = () => {
     });
 
     // Initialize form values with dish data
+    // Parse categories from JSON format
+    let dishCategories = [];
+    try {
+      dishCategories = JSON.parse(dish.category || '[]');
+      if (!Array.isArray(dishCategories)) {
+        dishCategories = [dish.category];
+      }
+    } catch (e) {
+      dishCategories = dish.category ? [dish.category] : [];
+    }
+
     setEditFormValues({
       name: dish.name,
       description: dish.description || '',
-      category: dish.category,
+      category: dishCategories[0] || '',
       new_category: '',
+      selectedCategories: dishCategories,
       price: dish.price.toString(),
       quantity: dish.quantity.toString(),
+      is_vegetarian: dish.is_vegetarian !== undefined ? dish.is_vegetarian : 1,
       image: null,
       imagePreview: dish.image_path ? `${process.env.REACT_APP_API_BASE_URL}${dish.image_path}` : null
     });
@@ -427,9 +448,11 @@ const AdminDishes = () => {
       const dishData = {
         name: editFormValues.name,
         description: editFormValues.description || '',
-        category: isEditNewCategory ? editFormValues.new_category : editFormValues.category,
+        categories: JSON.stringify(editFormValues.selectedCategories.length > 0 ? editFormValues.selectedCategories :
+                   [isEditNewCategory ? editFormValues.new_category : editFormValues.category]),
         price: parseFloat(editFormValues.price),
-        quantity: parseInt(editFormValues.quantity)
+        quantity: editFormValues.quantity ? parseInt(editFormValues.quantity) : 0,
+        is_vegetarian: editFormValues.is_vegetarian
       };
 
       if (editFormValues.image) {
@@ -472,110 +495,61 @@ const AdminDishes = () => {
         statusColor="primary"
       />
 
-      <Grid container spacing={4}>
-        {/* Dish Form */}
-        <Grid item xs={12} md={4}>
-          <Paper
-            elevation={2}
-            sx={{
-              p: 3,
-              borderRadius: 2,
-              height: '100%'
-            }}
-          >
-            <Typography variant="h5" component="h2" gutterBottom fontWeight="medium">
-              Add New Dish
-            </Typography>
+      {/* Add New Dish Form - Top Section */}
+      <Paper
+        elevation={3}
+        sx={{
+          p: 4,
+          borderRadius: 3,
+          mb: 4,
+          backgroundColor: '#121212',
+          border: '2px solid rgba(255, 165, 0, 0.2)',
+          background: 'linear-gradient(135deg, rgba(255, 165, 0, 0.02) 0%, rgba(255, 165, 0, 0.01) 100%)',
+          position: 'relative',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '4px',
+            background: 'linear-gradient(90deg, #FFA500, #FFB733)',
+            borderRadius: '3px 3px 0 0',
+          }
+        }}
+      >
+        <Typography variant="h5" component="h2" gutterBottom fontWeight="medium" sx={{ color: '#FFFFFF' }}>
+          Add New Dish
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 3 }}>
+          Fill in the details below to add a new dish to your menu
+        </Typography>
 
-            <Divider sx={{ mb: 3 }} />
+        <Divider sx={{ mb: 3 }} />
 
-            <form onSubmit={handleSubmit}>
-              <TextField
-                name="name"
-                label="Dish Name"
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                value={formValues.name}
-                onChange={handleFormChange}
-                error={!!formErrors.name}
-                helperText={formErrors.name}
-                required
-              />
-
-              <TextField
-                name="description"
-                label="Description"
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                multiline
-                rows={3}
-                value={formValues.description}
-                onChange={handleFormChange}
-              />
-
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={isNewCategory}
-                    onChange={handleCategoryToggle}
-                    name="categoryToggle"
-                  />
-                }
-                label="Add New Category"
-                sx={{ mb: 2 }}
-              />
-
-              {isNewCategory ? (
-                <TextField
-                  name="new_category"
-                  label="New Category Name"
-                  variant="outlined"
-                  fullWidth
-                  margin="normal"
-                  value={formValues.new_category}
-                  onChange={handleFormChange}
-                  error={!!formErrors.new_category}
-                  helperText={formErrors.new_category}
-                  required
-                />
-              ) : (
-                <FormControl
-                  fullWidth
-                  margin="normal"
-                  error={!!formErrors.category}
-                  required
-                >
-                  <InputLabel>Category</InputLabel>
-                  <Select
-                    name="category"
-                    label="Category"
-                    value={formValues.category}
-                    onChange={handleFormChange}
-                  >
-                    {categories.map((category) => (
-                      <MenuItem key={category} value={category}>
-                        {category}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {formErrors.category && (
-                    <FormHelperText>{formErrors.category}</FormHelperText>
-                  )}
-                </FormControl>
-              )}
-
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
+        <form onSubmit={handleSubmit}>
+          <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
                   <TextField
-                    name="price"
-                    label="Price"
+                    name="name"
+                    label="Dish Name"
                     variant="outlined"
                     fullWidth
-                    margin="normal"
+                    value={formValues.name}
+                    onChange={handleFormChange}
+                    error={!!formErrors.name}
+                    helperText={formErrors.name}
+                    required
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    name="price"
+                    label="Price (₹)"
+                    variant="outlined"
+                    fullWidth
                     type="number"
-                    inputProps={{ min: 0, step: 0.01 }}
                     value={formValues.price}
                     onChange={handleFormChange}
                     error={!!formErrors.price}
@@ -583,104 +557,237 @@ const AdminDishes = () => {
                     required
                   />
                 </Grid>
-                <Grid item xs={6}>
+
+                <Grid item xs={12}>
                   <TextField
-                    name="quantity"
-                    label="Quantity Available"
+                    name="description"
+                    label="Description"
                     variant="outlined"
                     fullWidth
-                    margin="normal"
+                    multiline
+                    rows={3}
+                    value={formValues.description}
+                    onChange={handleFormChange}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={isNewCategory}
+                        onChange={handleCategoryToggle}
+                        name="categoryToggle"
+                      />
+                    }
+                    label="Add New Category"
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  {isNewCategory ? (
+                    <TextField
+                      name="new_category"
+                      label="New Category Name"
+                      variant="outlined"
+                      fullWidth
+                      value={formValues.new_category}
+                      onChange={handleFormChange}
+                      error={!!formErrors.new_category}
+                      helperText={formErrors.new_category}
+                      required
+                    />
+                  ) : (
+                    <FormControl
+                      fullWidth
+                      error={!!formErrors.category}
+                      required
+                    >
+                      <InputLabel>Category</InputLabel>
+                      <Select
+                        name="category"
+                        label="Category"
+                        value={formValues.category}
+                        onChange={handleFormChange}
+                      >
+                        {categories.map((category) => (
+                          <MenuItem key={category} value={category}>
+                            {category}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {formErrors.category && (
+                        <FormHelperText>{formErrors.category}</FormHelperText>
+                      )}
+                    </FormControl>
+                  )}
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    name="quantity"
+                    label="Quantity Available (Optional)"
+                    variant="outlined"
+                    fullWidth
                     type="number"
                     inputProps={{ min: 0, step: 1 }}
                     value={formValues.quantity}
                     onChange={handleFormChange}
                     error={!!formErrors.quantity}
-                    helperText={formErrors.quantity}
-                    required
+                    helperText={formErrors.quantity || "Leave empty if not tracking quantity"}
                   />
                 </Grid>
-              </Grid>
 
-              <Box mt={2}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Dish Image
-                </Typography>
-                <Box
-                  sx={{
-                    border: '1px dashed',
-                    borderColor: formErrors.image ? 'error.main' : 'divider',
-                    borderRadius: 1,
-                    p: 2,
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    backgroundColor: formErrors.image ? 'error.lighter' : 'background.paper',
-                    height: formValues.imagePreview ? 'auto' : '120px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                  component="label"
-                >
-                  <input
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    onChange={handleImageChange}
-                  />
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth required>
+                    <InputLabel>Dish Type</InputLabel>
+                    <Select
+                      name="is_vegetarian"
+                      value={formValues.is_vegetarian}
+                      onChange={handleFormChange}
+                      label="Dish Type"
+                    >
+                      <MenuItem value={1}>🟢 Vegetarian</MenuItem>
+                      <MenuItem value={0}>🔴 Non-Vegetarian</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
 
-                  {formValues.imagePreview ? (
-                    <Box sx={{ width: '100%' }}>
-                      <img
-                        src={formValues.imagePreview}
-                        alt="Dish preview"
-                        style={{ width: '100%', maxHeight: '200px', objectFit: 'contain' }}
-                      />
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        sx={{ mt: 1 }}
-                        startIcon={<PhotoCameraIcon />}
-                      >
-                        Change Image
-                      </Button>
-                    </Box>
-                  ) : (
-                    <>
-                      <PhotoCameraIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-                      <Typography variant="body2" color="text.secondary">
-                        Click to upload an image
-                      </Typography>
-                    </>
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <InputLabel>Categories (Select Multiple)</InputLabel>
+                    <Select
+                      multiple
+                      name="selectedCategories"
+                      value={formValues.selectedCategories}
+                      onChange={handleFormChange}
+                      label="Categories (Select Multiple)"
+                      renderValue={(selected) => selected.join(', ')}
+                    >
+                      {categories.map((cat) => (
+                        <MenuItem key={cat} value={cat}>
+                          <input
+                            type="checkbox"
+                            checked={formValues.selectedCategories.indexOf(cat) > -1}
+                            style={{ marginRight: 8 }}
+                            readOnly
+                          />
+                          {cat}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    <FormHelperText>
+                      Select multiple categories or use the single category option above
+                    </FormHelperText>
+                  </FormControl>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Dish Image
+                  </Typography>
+                  <Box
+                    sx={{
+                      border: '1px dashed',
+                      borderColor: formErrors.image ? 'error.main' : 'divider',
+                      borderRadius: 1,
+                      p: 2,
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      backgroundColor: formErrors.image ? 'error.lighter' : 'background.paper',
+                      height: formValues.imagePreview ? 'auto' : '120px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    component="label"
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleImageChange}
+                    />
+
+                    {formValues.imagePreview ? (
+                      <Box sx={{ width: '100%' }}>
+                        <img
+                          src={formValues.imagePreview}
+                          alt="Dish preview"
+                          style={{ width: '100%', maxHeight: '200px', objectFit: 'contain' }}
+                        />
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          sx={{ mt: 1 }}
+                          startIcon={<PhotoCameraIcon />}
+                        >
+                          Change Image
+                        </Button>
+                      </Box>
+                    ) : (
+                      <>
+                        <PhotoCameraIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
+                        <Typography variant="body2" color="text.secondary">
+                          Click to upload an image
+                        </Typography>
+                      </>
+                    )}
+                  </Box>
+                  {formErrors.image && (
+                    <FormHelperText error>{formErrors.image}</FormHelperText>
                   )}
-                </Box>
-                {formErrors.image && (
-                  <FormHelperText error>{formErrors.image}</FormHelperText>
-                )}
-              </Box>
+                </Grid>
 
-              <Box mt={3}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                  size="large"
-                  startIcon={<AddIcon />}
-                  disabled={submitLoading}
-                >
-                  {submitLoading ? <CircularProgress size={24} /> : 'Add Dish'}
-                </Button>
-              </Box>
+                <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'flex-end' }}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    size="large"
+                    startIcon={<AddIcon />}
+                    disabled={submitLoading}
+                    sx={{ height: 'fit-content' }}
+                  >
+                    {submitLoading ? <CircularProgress size={24} /> : 'Add Dish'}
+                  </Button>
+                </Grid>
+              </Grid>
             </form>
-          </Paper>
-        </Grid>
+      </Paper>
 
-        {/* Dish List */}
-        <Grid item xs={12} md={8}>
-          <Typography variant="h5" component="h2" gutterBottom fontWeight="medium">
-            All Dishes
-          </Typography>
+      {/* Existing Dishes Grid - Bottom Section */}
+      <Paper
+        elevation={3}
+        sx={{
+          p: 4,
+          borderRadius: 3,
+          backgroundColor: '#121212',
+          border: '2px solid rgba(255, 165, 0, 0.2)',
+          background: 'linear-gradient(135deg, rgba(255, 165, 0, 0.02) 0%, rgba(255, 165, 0, 0.01) 100%)',
+          position: 'relative',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '4px',
+            background: 'linear-gradient(90deg, #FFA500, #FFB733)',
+            borderRadius: '3px 3px 0 0',
+          }
+        }}
+      >
+        <Typography variant="h5" component="h2" gutterBottom fontWeight="medium" sx={{ color: '#FFFFFF' }}>
+          All Dishes
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 3 }}>
+          Manage your existing menu items
+        </Typography>
+
+        <Divider sx={{ mb: 3 }} />
 
           {loading ? (
             <Box display="flex" justifyContent="center" my={4}>
@@ -719,7 +826,19 @@ const AdminDishes = () => {
                           Category:
                         </Typography>
                         <Typography variant="subtitle1" fontWeight="medium">
-                          {dish.category}
+                          {(() => {
+                            // Parse categories from JSON format
+                            let dishCategories = [];
+                            try {
+                              dishCategories = JSON.parse(dish.category || '[]');
+                              if (!Array.isArray(dishCategories)) {
+                                dishCategories = [dish.category];
+                              }
+                            } catch (e) {
+                              dishCategories = dish.category ? [dish.category] : [];
+                            }
+                            return dishCategories.join(', ');
+                          })()}
                         </Typography>
                       </Box>
 
@@ -765,8 +884,7 @@ const AdminDishes = () => {
               ))}
             </Grid>
           )}
-        </Grid>
-      </Grid>
+      </Paper>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialog.open} onClose={handleDeleteDialogClose}>
@@ -891,7 +1009,7 @@ const AdminDishes = () => {
                 <Grid item xs={6}>
                   <TextField
                     name="quantity"
-                    label="Quantity Available"
+                    label="Quantity Available (Optional)"
                     variant="outlined"
                     fullWidth
                     margin="normal"
@@ -900,11 +1018,52 @@ const AdminDishes = () => {
                     value={editFormValues.quantity}
                     onChange={handleEditFormChange}
                     error={!!editFormErrors.quantity}
-                    helperText={editFormErrors.quantity}
-                    required
+                    helperText={editFormErrors.quantity || "Leave empty if not tracking quantity"}
                   />
                 </Grid>
               </Grid>
+
+              {/* Vegetarian/Non-Vegetarian Selection */}
+              <FormControl fullWidth margin="normal" required>
+                <InputLabel>Dish Type</InputLabel>
+                <Select
+                  name="is_vegetarian"
+                  value={editFormValues.is_vegetarian}
+                  onChange={handleEditFormChange}
+                  label="Dish Type"
+                >
+                  <MenuItem value={1}>🟢 Vegetarian</MenuItem>
+                  <MenuItem value={0}>🔴 Non-Vegetarian</MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* Multiple Categories Selection */}
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Categories (Select Multiple)</InputLabel>
+                <Select
+                  multiple
+                  name="selectedCategories"
+                  value={editFormValues.selectedCategories}
+                  onChange={handleEditFormChange}
+                  label="Categories (Select Multiple)"
+                  renderValue={(selected) => selected.join(', ')}
+                >
+                  {categories.map((cat) => (
+                    <MenuItem key={cat} value={cat}>
+                      <input
+                        type="checkbox"
+                        checked={editFormValues.selectedCategories.indexOf(cat) > -1}
+                        style={{ marginRight: 8 }}
+                        readOnly
+                      />
+                      {cat}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <FormHelperText>
+                  Select multiple categories or use the single category option above
+                </FormHelperText>
+              </FormControl>
 
               <Box mt={2}>
                 <Typography variant="subtitle1" gutterBottom>

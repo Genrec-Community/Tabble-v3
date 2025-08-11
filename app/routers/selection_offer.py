@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone
 
-from ..database import get_db, SelectionOffer as SelectionOfferModel, get_session_db
+from ..database import get_db, SelectionOffer as SelectionOfferModel, get_session_db, get_hotel_id_from_request
 from ..models.selection_offer import (
     SelectionOffer,
     SelectionOfferCreate,
@@ -27,15 +27,20 @@ def get_session_database(request: Request):
 # Get all selection offers
 @router.get("/", response_model=List[SelectionOffer])
 def get_all_selection_offers(request: Request, db: Session = Depends(get_session_database)):
-    return db.query(SelectionOfferModel).order_by(SelectionOfferModel.min_amount).all()
+    hotel_id = get_hotel_id_from_request(request)
+    return db.query(SelectionOfferModel).filter(SelectionOfferModel.hotel_id == hotel_id).order_by(SelectionOfferModel.min_amount).all()
 
 
 # Get active selection offers
 @router.get("/active", response_model=List[SelectionOffer])
 def get_active_selection_offers(request: Request, db: Session = Depends(get_session_database)):
+    hotel_id = get_hotel_id_from_request(request)
     return (
         db.query(SelectionOfferModel)
-        .filter(SelectionOfferModel.is_active == True)
+        .filter(
+            SelectionOfferModel.hotel_id == hotel_id,
+            SelectionOfferModel.is_active == True
+        )
         .order_by(SelectionOfferModel.min_amount)
         .all()
     )
@@ -44,8 +49,12 @@ def get_active_selection_offers(request: Request, db: Session = Depends(get_sess
 # Get selection offer by ID
 @router.get("/{offer_id}", response_model=SelectionOffer)
 def get_selection_offer(offer_id: int, request: Request, db: Session = Depends(get_session_database)):
+    hotel_id = get_hotel_id_from_request(request)
     db_offer = (
-        db.query(SelectionOfferModel).filter(SelectionOfferModel.id == offer_id).first()
+        db.query(SelectionOfferModel).filter(
+            SelectionOfferModel.hotel_id == hotel_id,
+            SelectionOfferModel.id == offer_id
+        ).first()
     )
     if not db_offer:
         raise HTTPException(status_code=404, detail="Selection offer not found")
@@ -55,10 +64,15 @@ def get_selection_offer(offer_id: int, request: Request, db: Session = Depends(g
 # Create new selection offer
 @router.post("/", response_model=SelectionOffer)
 def create_selection_offer(offer: SelectionOfferCreate, request: Request, db: Session = Depends(get_session_database)):
-    # Check if an offer with this min_amount already exists
+    hotel_id = get_hotel_id_from_request(request)
+
+    # Check if an offer with this min_amount already exists for this hotel
     existing_offer = (
         db.query(SelectionOfferModel)
-        .filter(SelectionOfferModel.min_amount == offer.min_amount)
+        .filter(
+            SelectionOfferModel.hotel_id == hotel_id,
+            SelectionOfferModel.min_amount == offer.min_amount
+        )
         .first()
     )
     if existing_offer:
@@ -69,6 +83,7 @@ def create_selection_offer(offer: SelectionOfferCreate, request: Request, db: Se
 
     # Create new offer
     db_offer = SelectionOfferModel(
+        hotel_id=hotel_id,
         min_amount=offer.min_amount,
         discount_amount=offer.discount_amount,
         is_active=offer.is_active,
@@ -87,13 +102,18 @@ def create_selection_offer(offer: SelectionOfferCreate, request: Request, db: Se
 def update_selection_offer(
     offer_id: int, offer_update: SelectionOfferUpdate, request: Request, db: Session = Depends(get_session_database)
 ):
+    hotel_id = get_hotel_id_from_request(request)
+
     db_offer = (
-        db.query(SelectionOfferModel).filter(SelectionOfferModel.id == offer_id).first()
+        db.query(SelectionOfferModel).filter(
+            SelectionOfferModel.hotel_id == hotel_id,
+            SelectionOfferModel.id == offer_id
+        ).first()
     )
     if not db_offer:
         raise HTTPException(status_code=404, detail="Selection offer not found")
 
-    # Check if updating min_amount and if it already exists
+    # Check if updating min_amount and if it already exists for this hotel
     if (
         offer_update.min_amount is not None
         and offer_update.min_amount != db_offer.min_amount
@@ -101,6 +121,7 @@ def update_selection_offer(
         existing_offer = (
             db.query(SelectionOfferModel)
             .filter(
+                SelectionOfferModel.hotel_id == hotel_id,
                 SelectionOfferModel.min_amount == offer_update.min_amount,
                 SelectionOfferModel.id != offer_id,
             )
@@ -130,8 +151,13 @@ def update_selection_offer(
 # Delete selection offer
 @router.delete("/{offer_id}")
 def delete_selection_offer(offer_id: int, request: Request, db: Session = Depends(get_session_database)):
+    hotel_id = get_hotel_id_from_request(request)
+
     db_offer = (
-        db.query(SelectionOfferModel).filter(SelectionOfferModel.id == offer_id).first()
+        db.query(SelectionOfferModel).filter(
+            SelectionOfferModel.hotel_id == hotel_id,
+            SelectionOfferModel.id == offer_id
+        ).first()
     )
     if not db_offer:
         raise HTTPException(status_code=404, detail="Selection offer not found")
@@ -144,10 +170,13 @@ def delete_selection_offer(offer_id: int, request: Request, db: Session = Depend
 # Get applicable discount for an order amount
 @router.get("/discount/{order_amount}")
 def get_discount_for_order_amount(order_amount: float, request: Request, db: Session = Depends(get_session_database)):
-    # Find the highest tier that the order amount qualifies for
+    hotel_id = get_hotel_id_from_request(request)
+
+    # Find the highest tier that the order amount qualifies for this hotel
     applicable_offer = (
         db.query(SelectionOfferModel)
         .filter(
+            SelectionOfferModel.hotel_id == hotel_id,
             SelectionOfferModel.min_amount <= order_amount,
             SelectionOfferModel.is_active == True,
         )

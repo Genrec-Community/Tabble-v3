@@ -90,12 +90,74 @@ const MenuItemsGrid = ({
                     )}
 
                     {currentCategory === 'All' && (
-                      <CategoryBadge
-                        label={dish.category}
-                        size="small"
-                        categorycolor={categoryColors[dish.category]}
-                      />
+                      <Box sx={{ position: 'absolute', top: 8, left: 8, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {(() => {
+                          // Parse categories from JSON format
+                          let dishCategories = [];
+                          try {
+                            dishCategories = JSON.parse(dish.category || '[]');
+                            if (!Array.isArray(dishCategories)) {
+                              dishCategories = [dish.category];
+                            }
+                          } catch (e) {
+                            dishCategories = dish.category ? [dish.category] : [];
+                          }
+
+                          return dishCategories.slice(0, 2).map((cat, index) => (
+                            <CategoryBadge
+                              key={index}
+                              label={cat}
+                              size="small"
+                              categorycolor={categoryColors[cat] || categoryColors['Main Course']}
+                            />
+                          ));
+                        })()}
+                        {(() => {
+                          let dishCategories = [];
+                          try {
+                            dishCategories = JSON.parse(dish.category || '[]');
+                          } catch (e) {
+                            dishCategories = dish.category ? [dish.category] : [];
+                          }
+                          return dishCategories.length > 2 && (
+                            <CategoryBadge
+                              label={`+${dishCategories.length - 2}`}
+                              size="small"
+                              categorycolor="#666"
+                            />
+                          );
+                        })()}
+                      </Box>
                     )}
+
+                    {/* Vegetarian/Non-Vegetarian Indicator Overlay */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        backgroundColor: dish.is_vegetarian === 1 ? '#4CAF50' : '#F44336',
+                        border: '2px solid white',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 2
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          backgroundColor: 'white',
+                          opacity: 0.9
+                        }}
+                      />
+                    </Box>
                   </Box>
 
                   {/* Right side - Content */}
@@ -111,9 +173,11 @@ const MenuItemsGrid = ({
                       color: 'white'
                     }}>
                       <Box>
-                        <Typography gutterBottom variant="h5" component="div" fontWeight="bold" color="white" sx={{ mb: 1 }}>
-                          {dish.name}
-                        </Typography>
+                        <Box display="flex" alignItems="center" gap={1} mb={1}>
+                          <Typography gutterBottom variant="h5" component="div" fontWeight="bold" color="white" sx={{ mb: 0 }}>
+                            {dish.name}
+                          </Typography>
+                        </Box>
 
                         {dish.description && (
                           <Typography

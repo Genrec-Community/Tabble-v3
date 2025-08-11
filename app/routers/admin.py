@@ -133,7 +133,46 @@ def get_all_categories(request: Request, db: Session = Depends(get_session_datab
     categories = db.query(Dish.category).filter(
         Dish.hotel_id == hotel_id
     ).distinct().all()
-    return [category[0] for category in categories]
+
+    # Parse JSON categories and flatten them
+    import json
+    unique_categories = set()
+
+    for category_tuple in categories:
+        category_str = category_tuple[0]
+        if category_str:
+            try:
+                # Try to parse as JSON array
+                category_list = json.loads(category_str)
+                if isinstance(category_list, list):
+                    unique_categories.update(category_list)
+                else:
+                    unique_categories.add(category_str)
+            except (json.JSONDecodeError, TypeError):
+                # If not JSON, treat as single category
+                unique_categories.add(category_str)
+
+    return sorted(list(unique_categories))
+
+    # Parse categories from JSON format and flatten into unique list
+    import json
+    unique_categories = set()
+
+    for category_data in categories:
+        category_str = category_data[0]
+        if category_str:
+            try:
+                # Try to parse as JSON array
+                category_list = json.loads(category_str)
+                if isinstance(category_list, list):
+                    unique_categories.update(category_list)
+                else:
+                    unique_categories.add(category_str)
+            except (json.JSONDecodeError, TypeError):
+                # If not JSON, treat as single category (backward compatibility)
+                unique_categories.add(category_str)
+
+    return sorted(list(unique_categories))
 
 
 # Create new category
@@ -162,18 +201,35 @@ async def create_dish(
     description: Optional[str] = Form(None),
     category: str = Form(...),
     new_category: Optional[str] = Form(None),  # New field for custom category
+    categories: Optional[str] = Form(None),  # JSON array of multiple categories
     price: float = Form(...),
-    quantity: int = Form(...),
+    quantity: Optional[int] = Form(0),  # Made optional with default
     discount: Optional[float] = Form(0),  # Discount amount (percentage)
     is_offer: Optional[int] = Form(0),  # Whether this dish is part of offers
     is_special: Optional[int] = Form(0),  # Whether this dish is today's special
+    is_vegetarian: int = Form(...),  # Required: 1 = vegetarian, 0 = non-vegetarian
     image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_session_database),
 ):
     hotel_id = get_hotel_id_from_request(request)
 
-    # Use new category if provided, otherwise use selected category
-    final_category = new_category if new_category else category
+    # Handle categories - support both single and multiple categories
+    import json
+    final_category = None
+
+    if categories:
+        # Multiple categories provided as JSON array
+        try:
+            category_list = json.loads(categories)
+            final_category = json.dumps(category_list)  # Store as JSON string
+        except json.JSONDecodeError:
+            final_category = json.dumps([categories])  # Fallback to single category
+    elif new_category:
+        # Single new category
+        final_category = json.dumps([new_category])
+    else:
+        # Single existing category
+        final_category = json.dumps([category])
 
     # Create dish object
     db_dish = Dish(
@@ -186,6 +242,7 @@ async def create_dish(
         discount=discount,
         is_offer=is_offer,
         is_special=is_special,
+        is_vegetarian=is_vegetarian,
     )
 
     # Save dish to database
@@ -226,11 +283,13 @@ async def update_dish(
     description: Optional[str] = Form(None),
     category: Optional[str] = Form(None),
     new_category: Optional[str] = Form(None),  # New field for custom category
+    categories: Optional[str] = Form(None),  # JSON array of multiple categories
     price: Optional[float] = Form(None),
     quantity: Optional[int] = Form(None),
     discount: Optional[float] = Form(None),  # Discount amount (percentage)
     is_offer: Optional[int] = Form(None),  # Whether this dish is part of offers
     is_special: Optional[int] = Form(None),  # Whether this dish is today's special
+    is_vegetarian: Optional[int] = Form(None),  # 1 = vegetarian, 0 = non-vegetarian
     image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_session_database),
 ):
@@ -249,13 +308,24 @@ async def update_dish(
         db_dish.name = name
     if description:
         db_dish.description = description
-    if new_category:  # Use new category if provided
-        db_dish.category = new_category
+
+    # Handle categories - support both single and multiple categories
+    import json
+    if categories:
+        # Multiple categories provided as JSON array
+        try:
+            category_list = json.loads(categories)
+            db_dish.category = json.dumps(category_list)
+        except json.JSONDecodeError:
+            db_dish.category = json.dumps([categories])
+    elif new_category:  # Use new category if provided
+        db_dish.category = json.dumps([new_category])
     elif category:
-        db_dish.category = category
+        db_dish.category = json.dumps([category])
+
     if price:
         db_dish.price = price
-    if quantity:
+    if quantity is not None:  # Allow 0 quantity
         db_dish.quantity = quantity
     if discount is not None:
         db_dish.discount = discount
@@ -263,6 +333,8 @@ async def update_dish(
         db_dish.is_offer = is_offer
     if is_special is not None:
         db_dish.is_special = is_special
+    if is_vegetarian is not None:
+        db_dish.is_vegetarian = is_vegetarian
 
     # Handle image upload if provided
     if image:
@@ -410,11 +482,15 @@ def generate_bill(order_id: int, request: Request, db: Session = Depends(get_ses
             if dish:
                 item.dish = dish
 
-    # Get hotel settings
-    settings = db.query(Settings).first()
+    # Get hotel ID from request
+    hotel_id = get_hotel_id_from_request(request)
+
+    # Get hotel settings for this specific hotel
+    settings = db.query(Settings).filter(Settings.hotel_id == hotel_id).first()
     if not settings:
-        # Create default settings if none exist
+        # Create default settings if none exist for this hotel
         settings = Settings(
+            hotel_id=hotel_id,
             hotel_name="Tabble Hotel",
             address="123 Main Street, City",
             contact_number="+1 123-456-7890",
@@ -466,11 +542,15 @@ def generate_multi_bill(order_ids: List[int], request: Request, db: Session = De
 
         orders.append(db_order)
 
-    # Get hotel settings
-    settings = db.query(Settings).first()
+    # Get hotel ID from request
+    hotel_id = get_hotel_id_from_request(request)
+
+    # Get hotel settings for this specific hotel
+    settings = db.query(Settings).filter(Settings.hotel_id == hotel_id).first()
     if not settings:
-        # Create default settings if none exist
+        # Create default settings if none exist for this hotel
         settings = Settings(
+            hotel_id=hotel_id,
             hotel_name="Tabble Hotel",
             address="123 Main Street, City",
             contact_number="+1 123-456-7890",

@@ -51,6 +51,15 @@ const AdminLayout = () => {
   const [databaseConnected, setDatabaseConnected] = useState(false);
   const [currentDatabase, setCurrentDatabase] = useState('');
 
+  // Format database name: remove .db extension and capitalize first letter
+  const formatDatabaseName = (dbName) => {
+    if (!dbName) return '';
+    // Remove .db extension if present
+    const nameWithoutExtension = dbName.replace(/\.db$/, '');
+    // Capitalize first letter
+    return nameWithoutExtension.charAt(0).toUpperCase() + nameWithoutExtension.slice(1);
+  };
+
   // Check database connection on component mount
   useEffect(() => {
     // Skip database check for demo route
@@ -404,46 +413,15 @@ const AdminLayout = () => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" noWrap component="div" sx={{
+            flexGrow: 1,
+            minWidth: 0, // Allow text to shrink
+            mr: 2 // Add margin to prevent overlap
+          }}>
             {getCurrentPageTitle()}
           </Typography>
 
-          {databaseConnected && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                Database: {currentDatabase}
-              </Typography>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={handleSwitchDatabase}
-                sx={{
-                  color: 'primary.main',
-                  borderColor: 'primary.main',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 165, 0, 0.1)',
-                  }
-                }}
-              >
-                Switch DB
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                component={RouterLink}
-                to="/"
-                sx={{
-                  color: 'primary.main',
-                  borderColor: 'primary.main',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 165, 0, 0.1)',
-                  }
-                }}
-              >
-                Home
-              </Button>
-            </Box>
-          )}
+          
         </Toolbar>
       </AppBar>
 

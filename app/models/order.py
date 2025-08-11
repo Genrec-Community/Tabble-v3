@@ -55,6 +55,11 @@ class Order(OrderBase):
     person_id: Optional[int] = None
     person_name: Optional[str] = None
     visit_count: Optional[int] = None
+    total_amount: Optional[float] = None
+    subtotal_amount: Optional[float] = None
+    loyalty_discount_amount: Optional[float] = 0
+    selection_offer_discount_amount: Optional[float] = 0
+    loyalty_discount_percentage: Optional[float] = 0
 
     class Config:
         from_attributes = True  # Updated from orm_mode for Pydantic V2

@@ -167,13 +167,14 @@ class Dish(Base):
     hotel_id = Column(Integer, ForeignKey("hotels.id"), nullable=False, index=True)
     name = Column(String, index=True)
     description = Column(Text, nullable=True)
-    category = Column(String, index=True)
+    category = Column(String, index=True)  # Now stores JSON array for multiple categories
     price = Column(Float)
-    quantity = Column(Integer, default=0)
+    quantity = Column(Integer, default=0)  # Made optional in forms, but keeps default
     image_path = Column(String, nullable=True)
     discount = Column(Float, default=0)  # Discount amount (percentage)
     is_offer = Column(Integer, default=0)  # 0 = not an offer, 1 = is an offer
     is_special = Column(Integer, default=0)  # 0 = not special, 1 = today's special
+    is_vegetarian = Column(Integer, default=1)  # 1 = vegetarian, 0 = non-vegetarian
     visibility = Column(Integer, default=1)  # 1 = visible, 0 = hidden (soft delete)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
@@ -198,7 +199,11 @@ class Order(Base):
     unique_id = Column(String, index=True)
     person_id = Column(Integer, ForeignKey("persons.id"), nullable=True)
     status = Column(String, default="pending")  # pending, accepted, completed, paid
-    total_amount = Column(Float, nullable=True)
+    total_amount = Column(Float, nullable=True)  # Final amount paid after all discounts
+    subtotal_amount = Column(Float, nullable=True)  # Original amount before discounts
+    loyalty_discount_amount = Column(Float, default=0)  # Loyalty discount applied
+    selection_offer_discount_amount = Column(Float, default=0)  # Selection offer discount applied
+    loyalty_discount_percentage = Column(Float, default=0)  # Loyalty discount percentage applied
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
         DateTime,

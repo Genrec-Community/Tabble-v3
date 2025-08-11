@@ -395,14 +395,6 @@ const TableManagement = () => {
 
   return (
     <Container>
-      <Box mb={4}>
-        <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
-          Admin Portal
-        </Typography>
-
-
-      </Box>
-
       <AdminPageHeader
         title="Table Management"
         subtitle="Manage restaurant tables and their status"

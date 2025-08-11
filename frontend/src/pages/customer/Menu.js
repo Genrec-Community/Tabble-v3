@@ -24,7 +24,10 @@ import {
   ListItemText,
   AppBar,
   Toolbar,
-  CircularProgress
+  CircularProgress,
+  Tabs,
+  Tab,
+  Chip
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -115,6 +118,7 @@ const CustomerMenu = () => {
 
   // UI State
   const [currentCategory, setCurrentCategory] = useState('All');
+  const [vegetarianFilter, setVegetarianFilter] = useState('All'); // 'All', 'Vegetarian', 'Non-Vegetarian'
   const [filteredDishes, setFilteredDishes] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedDish, setSelectedDish] = useState(null);
@@ -140,13 +144,41 @@ const CustomerMenu = () => {
     'Beverage': theme.palette.success.main,
   }), [theme.palette]);
 
-  // Memoized filtered dishes based on category
+  // Memoized filtered dishes based on category and vegetarian filter
   const memoizedFilteredDishes = useMemo(() => {
-    if (currentCategory === 'All') {
-      return enhancedDishes;
+    let filtered = enhancedDishes;
+
+    // Apply category filter
+    if (currentCategory !== 'All') {
+      filtered = filtered.filter(dish => {
+        // Parse categories from JSON format
+        let dishCategories = [];
+        try {
+          dishCategories = JSON.parse(dish.category || '[]');
+          if (!Array.isArray(dishCategories)) {
+            dishCategories = [dish.category];
+          }
+        } catch (e) {
+          dishCategories = dish.category ? [dish.category] : [];
+        }
+        return dishCategories.includes(currentCategory);
+      });
     }
-    return enhancedDishes.filter(dish => dish.category === currentCategory);
-  }, [enhancedDishes, currentCategory]);
+
+    // Apply vegetarian filter
+    if (vegetarianFilter !== 'All') {
+      filtered = filtered.filter(dish => {
+        if (vegetarianFilter === 'Vegetarian') {
+          return dish.is_vegetarian === 1;
+        } else if (vegetarianFilter === 'Non-Vegetarian') {
+          return dish.is_vegetarian === 0;
+        }
+        return true;
+      });
+    }
+
+    return filtered;
+  }, [enhancedDishes, currentCategory, vegetarianFilter]);
 
   // Update filtered dishes when memoized value changes
   useEffect(() => {
@@ -193,6 +225,11 @@ const CustomerMenu = () => {
   // Optimized category change handler
   const handleCategoryChange = useCallback((_, newValue) => {
     setCurrentCategory(newValue);
+  }, []);
+
+  // Vegetarian filter change handler
+  const handleVegetarianFilterChange = useCallback((_, newValue) => {
+    setVegetarianFilter(newValue);
   }, []);
 
   // Optimized dialog handlers
@@ -548,6 +585,48 @@ const CustomerMenu = () => {
               Our <Box component="span" sx={{ color: '#FFA500', ml: 1 }}>Menu</Box>
             </Typography>
 
+            {/* Vegetarian Filter */}
+            <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+              <Tabs
+                value={vegetarianFilter}
+                onChange={handleVegetarianFilterChange}
+                variant="standard"
+                sx={{
+                  '& .MuiTabs-indicator': {
+                    backgroundColor: '#FFA500',
+                  },
+                  '& .MuiTab-root': {
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    fontWeight: 'medium',
+                    minWidth: 'auto',
+                    px: 2,
+                    '&.Mui-selected': {
+                      color: '#FFA500',
+                    },
+                  },
+                }}
+              >
+                <Tab
+                  label="All"
+                  value="All"
+                  icon={<Chip label="All" size="small" sx={{ bgcolor: 'rgba(255, 165, 0, 0.2)', color: 'white' }} />}
+                  iconPosition="start"
+                />
+                <Tab
+                  label="Vegetarian"
+                  value="Vegetarian"
+                  icon={<Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#4CAF50' }} />}
+                  iconPosition="start"
+                />
+                <Tab
+                  label="Non-Vegetarian"
+                  value="Non-Vegetarian"
+                  icon={<Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#F44336' }} />}
+                  iconPosition="start"
+                />
+              </Tabs>
+            </Box>
+
             {/* Category Tabs */}
             <MenuCategories
               categories={categories}
@@ -596,7 +675,19 @@ const CustomerMenu = () => {
         }}
       >
         <DialogTitle sx={{ pb: 1, borderBottom: '1px solid rgba(255, 165, 0, 0.2)' }}>
-          <Typography variant="h6" fontWeight="bold" color="white">{selectedDish?.name}</Typography>
+          <Box display="flex" alignItems="center" gap={1}>
+            {/* Vegetarian/Non-Vegetarian Indicator */}
+            <Box
+              sx={{
+                width: 14,
+                height: 14,
+                borderRadius: '50%',
+                backgroundColor: selectedDish?.is_vegetarian === 1 ? '#4CAF50' : '#F44336',
+                flexShrink: 0
+              }}
+            />
+            <Typography variant="h6" fontWeight="bold" color="white">{selectedDish?.name}</Typography>
+          </Box>
         </DialogTitle>
         <DialogContent dividers sx={{ borderColor: 'rgba(255, 165, 0, 0.2)' }}>
           {selectedDish && (

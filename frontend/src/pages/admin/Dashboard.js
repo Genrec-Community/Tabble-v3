@@ -272,8 +272,24 @@ const AdminDashboard = () => {
     );
   };
 
-  // Calculate order total
+  // Calculate order total - use stored total_amount if available, otherwise calculate from items
   const calculateOrderTotal = (order) => {
+    if (!order) return 0;
+
+    // If order has a stored total_amount (after discounts), use that
+    if (order.total_amount !== null && order.total_amount !== undefined) {
+      return parseFloat(order.total_amount).toFixed(2);
+    }
+
+    // Fallback to calculating from items (original prices)
+    if (!order.items) return 0;
+    return order.items.reduce((total, item) => {
+      return total + (item.dish.price * item.quantity);
+    }, 0).toFixed(2);
+  };
+
+  // Calculate order subtotal (before discounts)
+  const calculateOrderSubtotal = (order) => {
     if (!order || !order.items) return 0;
     return order.items.reduce((total, item) => {
       return total + (item.dish.price * item.quantity);

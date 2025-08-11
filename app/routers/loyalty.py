@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timezone
 
-from ..database import get_db, LoyaltyProgram as LoyaltyProgramModel, get_session_db
+from ..database import get_db, LoyaltyProgram as LoyaltyProgramModel, get_session_db, get_hotel_id_from_request
 from ..models.loyalty import LoyaltyProgram, LoyaltyProgramCreate, LoyaltyProgramUpdate
 from ..middleware import get_session_id
 
@@ -23,15 +23,20 @@ def get_session_database(request: Request):
 # Get all loyalty program tiers
 @router.get("/", response_model=List[LoyaltyProgram])
 def get_all_loyalty_tiers(request: Request, db: Session = Depends(get_session_database)):
-    return db.query(LoyaltyProgramModel).order_by(LoyaltyProgramModel.visit_count).all()
+    hotel_id = get_hotel_id_from_request(request)
+    return db.query(LoyaltyProgramModel).filter(LoyaltyProgramModel.hotel_id == hotel_id).order_by(LoyaltyProgramModel.visit_count).all()
 
 
 # Get active loyalty program tiers
 @router.get("/active", response_model=List[LoyaltyProgram])
 def get_active_loyalty_tiers(request: Request, db: Session = Depends(get_session_database)):
+    hotel_id = get_hotel_id_from_request(request)
     return (
         db.query(LoyaltyProgramModel)
-        .filter(LoyaltyProgramModel.is_active == True)
+        .filter(
+            LoyaltyProgramModel.hotel_id == hotel_id,
+            LoyaltyProgramModel.is_active == True
+        )
         .order_by(LoyaltyProgramModel.visit_count)
         .all()
     )
@@ -51,10 +56,15 @@ def get_loyalty_tier(tier_id: int, request: Request, db: Session = Depends(get_s
 # Create new loyalty tier
 @router.post("/", response_model=LoyaltyProgram)
 def create_loyalty_tier(tier: LoyaltyProgramCreate, request: Request, db: Session = Depends(get_session_database)):
-    # Check if a tier with this visit count already exists
+    hotel_id = get_hotel_id_from_request(request)
+
+    # Check if a tier with this visit count already exists for this hotel
     existing_tier = (
         db.query(LoyaltyProgramModel)
-        .filter(LoyaltyProgramModel.visit_count == tier.visit_count)
+        .filter(
+            LoyaltyProgramModel.hotel_id == hotel_id,
+            LoyaltyProgramModel.visit_count == tier.visit_count
+        )
         .first()
     )
     if existing_tier:
@@ -65,6 +75,7 @@ def create_loyalty_tier(tier: LoyaltyProgramCreate, request: Request, db: Sessio
 
     # Create new tier
     db_tier = LoyaltyProgramModel(
+        hotel_id=hotel_id,
         visit_count=tier.visit_count,
         discount_percentage=tier.discount_percentage,
         is_active=tier.is_active,
@@ -137,10 +148,13 @@ def delete_loyalty_tier(tier_id: int, request: Request, db: Session = Depends(ge
 # Get applicable discount for a visit count
 @router.get("/discount/{visit_count}")
 def get_discount_for_visit_count(visit_count: int, request: Request, db: Session = Depends(get_session_database)):
-    # Find the tier that exactly matches the visit count
+    hotel_id = get_hotel_id_from_request(request)
+
+    # Find the tier that exactly matches the visit count for this hotel
     applicable_tier = (
         db.query(LoyaltyProgramModel)
         .filter(
+            LoyaltyProgramModel.hotel_id == hotel_id,
             LoyaltyProgramModel.visit_count == visit_count,
             LoyaltyProgramModel.is_active == True,
         )

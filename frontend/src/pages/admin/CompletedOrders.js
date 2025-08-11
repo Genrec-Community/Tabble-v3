@@ -129,8 +129,24 @@ const CompletedOrders = () => {
     return moment(dateString).tz('Asia/Kolkata').format('MMM D, YYYY h:mm A');
   };
 
-  // Calculate order total
-  const calculateTotal = (items) => {
+  // Calculate order total - use stored total_amount if available, otherwise calculate from items
+  const calculateTotal = (order) => {
+    // If order has a stored total_amount (after discounts), use that
+    if (order && order.total_amount !== null && order.total_amount !== undefined) {
+      return parseFloat(order.total_amount).toFixed(2);
+    }
+
+    // Fallback to calculating from items (original prices)
+    const items = order?.items || order;
+    if (Array.isArray(items)) {
+      return items.reduce((sum, item) => sum + (item.dish?.price || 0) * item.quantity, 0).toFixed(2);
+    }
+
+    return "0.00";
+  };
+
+  // Calculate order subtotal (before discounts)
+  const calculateSubtotal = (items) => {
     return items.reduce((sum, item) => sum + (item.dish?.price || 0) * item.quantity, 0).toFixed(2);
   };
 
@@ -430,7 +446,18 @@ const CompletedOrders = () => {
                   </TableCell>
                   <TableCell>{order.table_number}</TableCell>
                   <TableCell>{order.items.length} items</TableCell>
-                  <TableCell>₹{calculateTotal(order.items)}</TableCell>
+                  <TableCell>
+                    <Box>
+                      <Typography variant="body2" fontWeight="bold">
+                        ₹{calculateTotal(order)}
+                      </Typography>
+                      {(order.loyalty_discount_amount > 0 || order.selection_offer_discount_amount > 0) && (
+                        <Typography variant="caption" color="success.main">
+                          (Discounted)
+                        </Typography>
+                      )}
+                    </Box>
+                  </TableCell>
                   <TableCell>{formatDate(order.created_at)}</TableCell>
                   <TableCell>
                     <Chip
@@ -562,25 +589,72 @@ const CompletedOrders = () => {
               <Divider sx={{ my: 2 }} />
 
               <Box>
-                <Box display="flex" justifyContent="space-between" mb={1}>
-                  <Typography variant="subtitle2">Subtotal:</Typography>
-                  <Typography variant="subtitle2">
-                    ₹{calculateTotal(selectedOrder.items)}
-                  </Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between" mb={1}>
-                  <Typography variant="subtitle2">Tax (10%):</Typography>
-                  <Typography variant="subtitle2">
-                    ₹{(parseFloat(calculateTotal(selectedOrder.items)) * 0.1).toFixed(2)}
-                  </Typography>
-                </Box>
-                <Divider sx={{ my: 1 }} />
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="subtitle1" fontWeight="bold">Total:</Typography>
-                  <Typography variant="subtitle1" fontWeight="bold" color="primary.main">
-                    ₹{(parseFloat(calculateTotal(selectedOrder.items)) * 1.1).toFixed(2)}
-                  </Typography>
-                </Box>
+                {/* Show discount breakdown if available */}
+                {(() => {
+                  const subtotal = selectedOrder.subtotal_amount || parseFloat(calculateSubtotal(selectedOrder.items));
+                  const loyaltyDiscount = selectedOrder.loyalty_discount_amount || 0;
+                  const offerDiscount = selectedOrder.selection_offer_discount_amount || 0;
+                  const finalAmount = selectedOrder.total_amount || (subtotal - loyaltyDiscount - offerDiscount);
+
+                  return (
+                    <>
+                      <Box display="flex" justifyContent="space-between" mb={1}>
+                        <Typography variant="subtitle2">Subtotal:</Typography>
+                        <Typography variant="subtitle2">
+                          ₹{subtotal.toFixed(2)}
+                        </Typography>
+                      </Box>
+
+                      {loyaltyDiscount > 0 && (
+                        <Box display="flex" justifyContent="space-between" mb={1}>
+                          <Typography variant="subtitle2" color="success.main">
+                            Loyalty Discount ({selectedOrder.loyalty_discount_percentage || 0}%):
+                          </Typography>
+                          <Typography variant="subtitle2" color="success.main">
+                            -₹{loyaltyDiscount.toFixed(2)}
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {offerDiscount > 0 && (
+                        <Box display="flex" justifyContent="space-between" mb={1}>
+                          <Typography variant="subtitle2" color="success.main">
+                            Offer Discount:
+                          </Typography>
+                          <Typography variant="subtitle2" color="success.main">
+                            -₹{offerDiscount.toFixed(2)}
+                          </Typography>
+                        </Box>
+                      )}
+
+                      <Box display="flex" justifyContent="space-between" mb={1}>
+                        <Typography variant="subtitle2">Tax (10%):</Typography>
+                        <Typography variant="subtitle2">
+                          ₹{(finalAmount * 0.1).toFixed(2)}
+                        </Typography>
+                      </Box>
+
+                      <Divider sx={{ my: 1 }} />
+
+                      <Box display="flex" justifyContent="space-between">
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          Total Paid:
+                        </Typography>
+                        <Typography variant="subtitle1" fontWeight="bold" color="primary.main">
+                          ₹{(finalAmount * 1.1).toFixed(2)}
+                        </Typography>
+                      </Box>
+
+                      {(loyaltyDiscount > 0 || offerDiscount > 0) && (
+                        <Box display="flex" justifyContent="space-between" mt={1}>
+                          <Typography variant="caption" color="success.main">
+                            Total Savings: ₹{(loyaltyDiscount + offerDiscount).toFixed(2)}
+                          </Typography>
+                        </Box>
+                      )}
+                    </>
+                  );
+                })()}
               </Box>
             </DialogContent>
             <DialogActions sx={{ p: 2 }}>

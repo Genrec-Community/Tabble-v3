@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 import uuid
@@ -37,17 +37,33 @@ def get_menu(request: Request, category: str = None, db: Session = Depends(get_s
     hotel_id = get_hotel_id_from_request(request)
 
     if category:
-        dishes = db.query(Dish).filter(
+        # Filter dishes that contain the specified category in their JSON array
+        import json
+        all_dishes = db.query(Dish).filter(
             Dish.hotel_id == hotel_id,
-            Dish.category == category,
             Dish.visibility == 1
         ).all()
+
+        filtered_dishes = []
+        for dish in all_dishes:
+            try:
+                dish_categories = json.loads(dish.category) if dish.category else []
+                if isinstance(dish_categories, list) and category in dish_categories:
+                    filtered_dishes.append(dish)
+                elif isinstance(dish_categories, str) and dish_categories == category:
+                    filtered_dishes.append(dish)
+            except (json.JSONDecodeError, TypeError):
+                # Backward compatibility: treat as single category
+                if dish.category == category:
+                    filtered_dishes.append(dish)
+
+        return filtered_dishes
     else:
         dishes = db.query(Dish).filter(
             Dish.hotel_id == hotel_id,
             Dish.visibility == 1
         ).all()
-    return dishes
+        return dishes
 
 
 # Get offer dishes (only visible ones)
@@ -82,7 +98,26 @@ def get_categories(request: Request, db: Session = Depends(get_session_database)
         Dish.hotel_id == hotel_id,
         Dish.visibility == 1
     ).distinct().all()
-    return [category[0] for category in categories]
+
+    # Parse JSON categories and flatten them
+    import json
+    unique_categories = set()
+
+    for category_tuple in categories:
+        category_str = category_tuple[0]
+        if category_str:
+            try:
+                # Try to parse as JSON array
+                category_list = json.loads(category_str)
+                if isinstance(category_list, list):
+                    unique_categories.update(category_list)
+                else:
+                    unique_categories.add(category_str)
+            except (json.JSONDecodeError, TypeError):
+                # If not JSON, treat as single category
+                unique_categories.add(category_str)
+
+    return sorted(list(unique_categories))
 
 
 # Register a new user or update existing user
@@ -157,7 +192,7 @@ def login_user(user_data: PersonLogin, request: Request, db: Session = Depends(g
 # Create new order
 @router.post("/api/orders", response_model=OrderModel)
 def create_order(
-    order: OrderCreate, request: Request, person_id: int = None, db: Session = Depends(get_session_database)
+    order: OrderCreate, request: Request, person_id: int = Query(None), db: Session = Depends(get_session_database)
 ):
     hotel_id = get_hotel_id_from_request(request)
 
@@ -330,8 +365,67 @@ def request_payment(order_id: int, request: Request, db: Session = Depends(get_s
                 detail="Order must be completed before payment can be processed"
             )
 
-        # Update order status to paid
+        # Calculate order totals and apply discounts
+        from ..database import LoyaltyProgram, SelectionOffer, Person
+
+        # Calculate subtotal from order items
+        subtotal = 0
+        for item in db_order.items:
+            if item.dish:
+                subtotal += item.dish.price * item.quantity
+
+        # Initialize discount amounts
+        loyalty_discount_amount = 0
+        loyalty_discount_percentage = 0
+        selection_offer_discount_amount = 0
+
+        # Apply loyalty discount if customer is registered
+        if db_order.person_id:
+            person = db.query(Person).filter(Person.id == db_order.person_id).first()
+            if person:
+                # Get applicable loyalty discount
+                loyalty_tier = (
+                    db.query(LoyaltyProgram)
+                    .filter(
+                        LoyaltyProgram.hotel_id == hotel_id,
+                        LoyaltyProgram.visit_count == person.visit_count,
+                        LoyaltyProgram.is_active == True,
+                    )
+                    .first()
+                )
+
+                if loyalty_tier:
+                    loyalty_discount_percentage = loyalty_tier.discount_percentage
+                    loyalty_discount_amount = subtotal * (loyalty_discount_percentage / 100)
+
+        # Apply selection offer discount
+        selection_offer = (
+            db.query(SelectionOffer)
+            .filter(
+                SelectionOffer.hotel_id == hotel_id,
+                SelectionOffer.min_amount <= subtotal,
+                SelectionOffer.is_active == True,
+            )
+            .order_by(SelectionOffer.min_amount.desc())
+            .first()
+        )
+
+        if selection_offer:
+            selection_offer_discount_amount = selection_offer.discount_amount
+
+        # Calculate final total after discounts
+        final_total = subtotal - loyalty_discount_amount - selection_offer_discount_amount
+
+        # Ensure final total is not negative
+        final_total = max(0, final_total)
+
+        # Update order with calculated amounts
         db_order.status = "paid"
+        db_order.subtotal_amount = subtotal
+        db_order.loyalty_discount_amount = loyalty_discount_amount
+        db_order.loyalty_discount_percentage = loyalty_discount_percentage
+        db_order.selection_offer_discount_amount = selection_offer_discount_amount
+        db_order.total_amount = final_total
         db_order.updated_at = datetime.now(timezone.utc)
 
         # Check if this is the last unpaid order for this table
