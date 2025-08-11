@@ -645,7 +645,7 @@ const AdminDashboard = () => {
                       textShadow: '0 2px 4px rgba(156, 39, 176, 0.3)',
                       mb: 1
                     }}>
-                      ₹{(stats.paid_orders_today * 450).toLocaleString()}
+                      ₹{(stats.revenue_today || 0).toLocaleString()}
                     </Typography>
                     <Typography variant="h6" component="div" color="text.primary" gutterBottom sx={{ fontWeight: 'medium' }}>
                       Revenue Today

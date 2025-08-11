@@ -432,6 +432,25 @@ def get_order_stats(request: Request, db: Session = Depends(get_session_database
         )
     ).count()
 
+    # Calculate today's revenue from paid orders
+    revenue_today_query = (
+        db.query(
+            func.sum(Dish.price * OrderItem.quantity).label("revenue_today")
+        )
+        .join(OrderItem, Dish.id == OrderItem.dish_id)
+        .join(Order, OrderItem.order_id == Order.id)
+        .filter(Order.status == "paid")
+        .filter(
+            and_(
+                Order.created_at >= today_start,
+                Order.created_at <= today_end
+            )
+        )
+    )
+
+    revenue_today_result = revenue_today_query.first()
+    revenue_today = revenue_today_result.revenue_today if revenue_today_result.revenue_today else 0
+
     return {
         "total_orders": total_orders,
         "pending_orders": pending_orders,
@@ -442,6 +461,7 @@ def get_order_stats(request: Request, db: Session = Depends(get_session_database
         "pending_orders_today": pending_orders_today,
         "completed_orders_today": completed_orders_today,
         "paid_orders_today": paid_orders_today,
+        "revenue_today": round(revenue_today, 2),
     }
 
 
