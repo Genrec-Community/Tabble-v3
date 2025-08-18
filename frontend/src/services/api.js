@@ -307,6 +307,17 @@ export const customerService = {
       throw error;
     }
   },
+
+  // Demo mode login
+  demoLogin: async () => {
+    try {
+      const response = await api.post('/customer/api/demo-login');
+      return response.data;
+    } catch (error) {
+      console.error('Error with demo login:', error);
+      throw error;
+    }
+  },
 };
 
 // Chef API services

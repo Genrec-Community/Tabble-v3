@@ -18,6 +18,12 @@ from ..models.user import (
 from ..services import firebase_auth
 from ..middleware import get_session_id
 
+# Demo mode configuration
+DEMO_MODE_ENABLED = True  # Set to False to disable demo mode
+DEMO_CUSTOMER_ID = 999999
+DEMO_CUSTOMER_USERNAME = "Demo Customer"
+DEMO_CUSTOMER_PHONE = "+91-DEMO-USER"
+
 router = APIRouter(
     prefix="/customer",
     tags=["customer"],
@@ -29,6 +35,56 @@ router = APIRouter(
 def get_session_database(request: Request):
     session_id = get_session_id(request)
     return next(get_session_db(session_id))
+
+
+# Demo mode endpoint - creates or returns demo customer
+@router.post("/api/demo-login", response_model=Dict[str, Any])
+def demo_login(request: Request, db: Session = Depends(get_session_database)):
+    """
+    Demo mode login - bypasses authentication and returns a demo customer
+    """
+    if not DEMO_MODE_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Demo mode is disabled"
+        )
+
+    hotel_id = get_hotel_id_from_request(request)
+
+    # Check if demo customer already exists for this hotel
+    demo_user = db.query(Person).filter(
+        Person.hotel_id == hotel_id,
+        Person.id == DEMO_CUSTOMER_ID
+    ).first()
+
+    if not demo_user:
+        # Create demo customer
+        demo_user = Person(
+            id=DEMO_CUSTOMER_ID,
+            hotel_id=hotel_id,
+            username=DEMO_CUSTOMER_USERNAME,
+            password="demo",  # Demo password
+            phone_number=DEMO_CUSTOMER_PHONE,
+            visit_count=5,  # Show as returning customer
+            last_visit=datetime.now(timezone.utc),
+            created_at=datetime.now(timezone.utc)
+        )
+        db.add(demo_user)
+        db.commit()
+        db.refresh(demo_user)
+    else:
+        # Update last visit time
+        demo_user.last_visit = datetime.now(timezone.utc)
+        db.commit()
+
+    return {
+        "success": True,
+        "message": "Demo login successful",
+        "user_exists": True,
+        "user_id": demo_user.id,
+        "username": demo_user.username,
+        "demo_mode": True
+    }
 
 
 # Get all dishes for menu (only visible ones)

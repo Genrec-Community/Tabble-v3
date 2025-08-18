@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Test Image</title>
+</head>
+<body>
+    <canvas id="canvas" width="200" height="200"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Create a simple test image
+        ctx.fillStyle = '#FF6B6B';
+        ctx.fillRect(0, 0, 200, 200);
+        
+        ctx.fillStyle = '#4ECDC4';
+        ctx.fillRect(50, 50, 100, 100);
+        
+        ctx.fillStyle = '#45B7D1';
+        ctx.beginPath();
+        ctx.arc(100, 100, 30, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.fillStyle = 'white';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('TEST', 100, 105);
+        
+        // Convert to blob and download
+        canvas.toBlob(function(blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'test-dish-image.png';
+            a.click();
+        });
+    </script>
+</body>
+</html>

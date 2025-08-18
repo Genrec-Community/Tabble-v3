@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { customerService, adminService } from '../../services/api';
+import { isDemoModeEnabled, getDemoMenuUrl, DEMO_CONFIG } from '../../config/demoConfig';
 import {
   Container,
   Paper,
@@ -151,6 +152,37 @@ const CustomerLogin = () => {
   const [usernameError, setUsernameError] = useState('');
   const [savingUsername, setSavingUsername] = useState(false);
 
+  // Demo mode states
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
+
+  // Demo mode login handler
+  const handleDemoLogin = useCallback(async () => {
+    if (!isDemoModeEnabled()) {
+      setLoginError('Demo mode is not enabled');
+      return;
+    }
+
+    setIsDemoLoading(true);
+    setLoginError('');
+
+    try {
+      // Call demo login API
+      const response = await customerService.demoLogin();
+
+      if (response.success) {
+        // Navigate directly to menu with demo credentials
+        navigate(getDemoMenuUrl());
+      } else {
+        setLoginError('Demo login failed');
+      }
+    } catch (error) {
+      console.error('Demo login error:', error);
+      setLoginError('Demo login failed. Please try again.');
+    } finally {
+      setIsDemoLoading(false);
+    }
+  }, [navigate]);
+
   // Food images for the gallery
   const foodImages = [
     'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80',
@@ -161,6 +193,13 @@ const CustomerLogin = () => {
 
   // Load table number from localStorage and verify database is selected
   useEffect(() => {
+    // Check if demo mode is enabled - if so, redirect directly to menu
+    if (isDemoModeEnabled()) {
+      // Auto-login with demo credentials and redirect to menu
+      handleDemoLogin();
+      return;
+    }
+
     // Check if database is already selected from home page
     const selectedDatabase = localStorage.getItem('customerSelectedDatabase');
     const databasePassword = localStorage.getItem('customerDatabasePassword');
@@ -182,7 +221,7 @@ const CustomerLogin = () => {
     // Auto-generate a unique ID
     const generatedUniqueId = Math.random().toString(36).substring(2, 10).toUpperCase();
     setUniqueId(generatedUniqueId);
-  }, [navigate]);
+  }, [navigate, handleDemoLogin]);
 
 
 
@@ -414,6 +453,32 @@ const CustomerLogin = () => {
       setSavingUsername(false);
     }
   };
+
+  // Show loading screen if demo mode is active and redirecting
+  if (isDemoModeEnabled() && isDemoLoading) {
+    return (
+      <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2 } }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 'calc(100vh - 160px)',
+            textAlign: 'center'
+          }}
+        >
+          <CircularProgress size={60} sx={{ color: '#FFA500', mb: 3 }} />
+          <Typography variant="h5" sx={{ color: 'white', mb: 2 }}>
+            🎭 Demo Mode Active
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+            Preparing demo experience...
+          </Typography>
+        </Box>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2 } }}>

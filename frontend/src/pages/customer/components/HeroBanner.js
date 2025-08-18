@@ -7,6 +7,7 @@ import {
   Fade
 } from '@mui/material';
 import PlaceIcon from '@mui/icons-material/Place';
+import { isDemoModeEnabled, DEMO_CONFIG } from '../../../config/demoConfig';
 
 const HeroBanner = ({ tableNumber, uniqueId, databaseName }) => {
   // Format database name: remove .db extension and capitalize first letter
@@ -19,6 +20,9 @@ const HeroBanner = ({ tableNumber, uniqueId, databaseName }) => {
   };
 
   const formattedDatabaseName = formatDatabaseName(databaseName);
+
+  // Check if we're in demo mode
+  const isDemo = isDemoModeEnabled() && uniqueId === DEMO_CONFIG.CUSTOMER.unique_id;
 
   return (
     <Box
@@ -95,7 +99,7 @@ const HeroBanner = ({ tableNumber, uniqueId, databaseName }) => {
                 <PlaceIcon sx={{ mr: 0.5, fontSize: '1rem', color: '#FFA500' }} />
                 <Typography variant="body2">Table #{tableNumber}</Typography>
               </Box>
-              
+
               <Chip
                 label={uniqueId}
                 size="small"
@@ -107,6 +111,33 @@ const HeroBanner = ({ tableNumber, uniqueId, databaseName }) => {
                   backdropFilter: 'blur(4px)',
                 }}
               />
+
+              {/* Demo Mode Indicator */}
+              {isDemo && (
+                <Chip
+                  label={DEMO_CONFIG.UI.demoModeIndicator}
+                  size="small"
+                  sx={{
+                    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    border: '1px solid rgba(255, 0, 0, 0.8)',
+                    backdropFilter: 'blur(4px)',
+                    animation: 'pulse 2s infinite',
+                    '@keyframes pulse': {
+                      '0%': {
+                        opacity: 1,
+                      },
+                      '50%': {
+                        opacity: 0.7,
+                      },
+                      '100%': {
+                        opacity: 1,
+                      },
+                    },
+                  }}
+                />
+              )}
             </Box>
           </Box>
         </Fade>

@@ -50,6 +50,7 @@ import {
   useCartManagement,
   useDiscountManagement
 } from '../../hooks/useMenuOptimized';
+import { isDemoModeEnabled, DEMO_CONFIG } from '../../config/demoConfig';
 
 // Import components
 import HeroBanner from './components/HeroBanner';

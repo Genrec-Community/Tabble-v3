@@ -190,9 +190,7 @@ const AdminDishes = () => {
       errors.price = 'Price must be a positive number';
     }
 
-    if (!formValues.quantity) {
-      errors.quantity = 'Quantity is required';
-    } else if (isNaN(formValues.quantity) || parseInt(formValues.quantity) < 0) {
+    if (formValues.quantity && (isNaN(formValues.quantity) || parseInt(formValues.quantity) < 0)) {
       errors.quantity = 'Quantity must be a non-negative number';
     }
 
@@ -339,7 +337,7 @@ const AdminDishes = () => {
       quantity: dish.quantity.toString(),
       is_vegetarian: dish.is_vegetarian !== undefined ? dish.is_vegetarian : 1,
       image: null,
-      imagePreview: dish.image_path ? `${process.env.REACT_APP_API_BASE_URL}${dish.image_path}` : null
+      imagePreview: dish.image_path ? `${process.env.REACT_APP_API_BASE_URL}${dish.image_path}?v=1` : null
     });
 
     // Reset form errors
@@ -424,9 +422,7 @@ const AdminDishes = () => {
       errors.price = 'Price must be a positive number';
     }
 
-    if (!editFormValues.quantity) {
-      errors.quantity = 'Quantity is required';
-    } else if (isNaN(editFormValues.quantity) || parseInt(editFormValues.quantity) < 0) {
+    if (editFormValues.quantity && (isNaN(editFormValues.quantity) || parseInt(editFormValues.quantity) < 0)) {
       errors.quantity = 'Quantity must be a non-negative number';
     }
 
@@ -809,7 +805,7 @@ const AdminDishes = () => {
                     <CardMedia
                       component="img"
                       height="140"
-                      image={dish.image_path ? `${process.env.REACT_APP_API_BASE_URL}${dish.image_path}` : `${process.env.REACT_APP_API_BASE_URL}/static/images/default-dish.jpg`}
+                      image={dish.image_path ? `${process.env.REACT_APP_API_BASE_URL}${dish.image_path}?v=1` : `${process.env.REACT_APP_API_BASE_URL}/static/images/default-dish.jpg?v=1`}
                       alt={dish.name}
                     />
                     <CardContent sx={{ flexGrow: 1 }}>

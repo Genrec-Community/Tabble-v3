@@ -154,26 +154,6 @@ def get_all_categories(request: Request, db: Session = Depends(get_session_datab
 
     return sorted(list(unique_categories))
 
-    # Parse categories from JSON format and flatten into unique list
-    import json
-    unique_categories = set()
-
-    for category_data in categories:
-        category_str = category_data[0]
-        if category_str:
-            try:
-                # Try to parse as JSON array
-                category_list = json.loads(category_str)
-                if isinstance(category_list, list):
-                    unique_categories.update(category_list)
-                else:
-                    unique_categories.add(category_str)
-            except (json.JSONDecodeError, TypeError):
-                # If not JSON, treat as single category (backward compatibility)
-                unique_categories.add(category_str)
-
-    return sorted(list(unique_categories))
-
 
 # Create new category
 @router.post("/api/categories")
@@ -199,7 +179,7 @@ async def create_dish(
     request: Request,
     name: str = Form(...),
     description: Optional[str] = Form(None),
-    category: str = Form(...),
+    category: Optional[str] = Form(None),  # Made optional
     new_category: Optional[str] = Form(None),  # New field for custom category
     categories: Optional[str] = Form(None),  # JSON array of multiple categories
     price: float = Form(...),
@@ -227,9 +207,12 @@ async def create_dish(
     elif new_category:
         # Single new category
         final_category = json.dumps([new_category])
-    else:
+    elif category:
         # Single existing category
         final_category = json.dumps([category])
+    else:
+        # Default category if none provided
+        final_category = json.dumps(["Uncategorized"])
 
     # Create dish object
     db_dish = Dish(
