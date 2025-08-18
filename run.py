@@ -35,4 +35,5 @@ if __name__ == "__main__":
 
     # Run the application on your IP address
     # Using 0.0.0.0 allows connections from any IP
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    PORT = os.getenv("PORT", 8000)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=PORT, reload=True)
