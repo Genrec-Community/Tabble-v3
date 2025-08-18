@@ -55,6 +55,12 @@ if has_react_build:
     app.mount("/", StaticFiles(directory=react_build_dir, html=True), name="react")
 
 
+# Health check endpoint for Render
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "message": "Tabble API is running"}
+
+
 # Root route - serve React app in production, otherwise serve index.html template
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):

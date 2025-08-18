@@ -33,7 +33,17 @@ if __name__ == "__main__":
     print(f"Access from other devices at: http://{ip_address}:8000")
     print("=" * 50 + "\n")
 
-    # Run the application on your IP address
-    # Using 0.0.0.0 allows connections from any IP
-    PORT = os.getenv("PORT", 8000)
-    uvicorn.run("app.main:app", host="0.0.0.0", port=PORT, reload=True)
+    # Get port from environment variable (for Render deployment) or default to 8000
+    port = int(os.environ.get("PORT", 8000))
+
+    # Check if running in production (Render sets this)
+    is_production = os.environ.get("RENDER") is not None
+
+    if is_production:
+        print(f"Starting production server on port {port}")
+        # Production mode - no reload, bind to 0.0.0.0
+        uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=False)
+    else:
+        # Development mode - Run the application on your IP address
+        # Using 0.0.0.0 allows connections from any IP
+        uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
