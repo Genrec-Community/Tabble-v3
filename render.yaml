@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: tabble-backend
+    env: python
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "python run.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: PORT
+        value: "10000"
+    disk:
+      name: tabble-storage
+      mountPath: /tabble-data
+      sizeGB: 1
+    healthCheck:
+      path: /
+      intervalSeconds: 30
+      timeoutSeconds: 10
+      successThreshold: 1
+      failureThreshold: 3

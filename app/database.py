@@ -26,6 +26,11 @@ class DatabaseManager:
         self.sessions: Dict[str, dict] = {}
         self.lock = threading.Lock()
         self.default_database = "tabble_new.db"
+        
+        # Set up Render-specific database path
+        if os.environ.get('RENDER'):
+            self.render_data_path = "/tabble-data"
+            os.makedirs(self.render_data_path, exist_ok=True)
 
     def get_session_id(self, request_headers: dict) -> str:
         """Generate or retrieve session ID from request headers"""
@@ -51,6 +56,11 @@ class DatabaseManager:
     def _create_connection(self, database_name: str) -> dict:
         """Create a new database connection"""
         database_url = f"sqlite:///./tabble_new.db" if database_name == "tabble_new.db" else f"sqlite:///./{database_name}"
+        
+        # Ensure database directory exists and is writable
+        db_path = database_url.replace("sqlite:///", "")
+        os.makedirs(os.path.dirname(db_path) if os.path.dirname(db_path) else ".", exist_ok=True)
+        
         engine = create_engine(database_url, connect_args={"check_same_thread": False})
         session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
         session_local = scoped_session(session_factory)
@@ -100,7 +110,13 @@ db_manager = DatabaseManager()
 
 # Global variables for database connection (legacy support)
 CURRENT_DATABASE = "tabble_new.db"
-DATABASE_URL = f"sqlite:///./tabble_new.db"  # Using the new database with offers feature
+
+# Set up database URL based on environment
+if os.environ.get('RENDER'):
+    DATABASE_URL = f"sqlite:////tabble-data/tabble_new.db"
+else:
+    DATABASE_URL = f"sqlite:///./tabble_new.db"  # Using the new database with offers feature
+
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 SessionLocal = scoped_session(session_factory)
@@ -281,7 +297,15 @@ def switch_database(database_name):
 
         # Update global variables
         CURRENT_DATABASE = database_name
-        DATABASE_URL = f"sqlite:///./tabble_new.db" if database_name == "tabble_new.db" else f"sqlite:///./{database_name}"
+        
+        # Set up database URL based on environment
+        if os.environ.get('RENDER'):
+            if database_name == "tabble_new.db":
+                DATABASE_URL = f"sqlite:////tabble-data/tabble_new.db"
+            else:
+                DATABASE_URL = f"sqlite:////tabble-data/{database_name}"
+        else:
+            DATABASE_URL = f"sqlite:///./tabble_new.db" if database_name == "tabble_new.db" else f"sqlite:///./{database_name}"
 
         # Dispose of the old engine and create a new one
         engine.dispose()
