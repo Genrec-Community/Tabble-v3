@@ -591,23 +591,175 @@ npm install
 
 #### 4. Configure Environment Variables
 
-##### Backend (.env in root directory):
-```env
-SECRET_KEY=your_secret_key_here
+##### Single Source of Truth
+Tabble-v3 uses a centralized configuration system. All environment variables are defined in the root `.env.example` file and automatically synced between backend and frontend.
+
+```bash
+# Copy the example file to create your .env
+cp .env.example .env
+
+# Sync frontend configuration (optional - automatically done on build)
+python scripts/sync_env.py
 ```
 
-##### Frontend (frontend/.env):
+##### Configuration Overview
+- **Root `.env`**: Contains all configuration for both backend and frontend
+- **Frontend `.env`**: Automatically generated from root `.env`
+- **Validation**: Run `python scripts/validate_config.py` to check configuration
+- **Documentation**: All variables are documented in `.env.example`
+
+##### Key Configuration Areas
+
+**Backend Configuration:**
+- `SECRET_KEY`: Application secret key (required)
+- `DATABASE_URL`: SQLite database path
+- `FIREBASE_CREDENTIALS_PATH`: Firebase service account path
+- `UPLOAD_DIR`: File upload directory
+- `CORS_ORIGINS`: Allowed CORS origins
+
+**Frontend Configuration:**
+- `REACT_APP_API_BASE_URL`: Backend API URL
+- `REACT_APP_FIREBASE_*`: Firebase client configuration
+- `REACT_APP_*`: Feature flags and UI settings
+
+**Deployment Configuration:**
+- `ENVIRONMENT`: development/staging/production
+- `RENDER`: Enable Render deployment mode
+- `PRODUCTION_API_URL`: Production API URL
+
+## ⚙️ Configuration Management
+
+### Overview
+Tabble-v3 uses a centralized configuration system that eliminates duplication between backend and frontend environments. All configuration values are defined once and consumed consistently across the entire application.
+
+### Architecture
+```
+.env.example          # Single source of truth (documented)
+├── .env              # Root environment file (all variables)
+├── scripts/
+│   ├── validate_config.py  # Validation script
+│   └── sync_env.py        # Sync script
+├── app/config.py     # Backend configuration (Pydantic)
+└── frontend/
+    └── src/config/   # Frontend configuration (typed)
+        └── index.js
+```
+
+### Key Features
+
+#### 🔒 Type Safety & Validation
+- **Backend**: Pydantic models with strict validation
+- **Frontend**: JavaScript objects with runtime validation
+- **Fail-fast**: Application fails on startup if critical config is missing
+
+#### 🔄 Automatic Synchronization
+- Frontend `.env` is automatically generated from root `.env`
+- No manual duplication between environments
+- Single command to sync all configurations
+
+#### 📋 Comprehensive Documentation
+- Every variable documented in `.env.example`
+- Clear categorization and comments
+- Examples and default values provided
+
+### Configuration Scripts
+
+#### Validate Configuration
+```bash
+# Check if all required variables are set
+python scripts/validate_config.py
+
+# Generate missing .env files
+python scripts/validate_config.py --generate
+```
+
+#### Sync Environment Files
+```bash
+# Sync frontend .env from root .env
+python scripts/sync_env.py
+
+# Check sync status without modifying files
+python scripts/sync_env.py --check
+```
+
+### Environment Profiles
+
+#### Development
+```bash
+ENVIRONMENT=development
+DEBUG=true
+RELOAD=true
+```
+
+#### Production
+```bash
+ENVIRONMENT=production
+DEBUG=false
+RELOAD=false
+SECRET_KEY=your_production_secret_key
+```
+
+### Adding New Configuration
+
+#### 1. Add to .env.example
 ```env
-# Backend API Configuration
-REACT_APP_API_BASE_URL=http://localhost:8000
+# New feature configuration
+NEW_FEATURE_ENABLED=true
+NEW_FEATURE_API_KEY=your_api_key_here
+```
 
-# Development settings
-NODE_ENV=development
+#### 2. Add to Backend (app/config.py)
+```python
+new_feature_enabled: bool = Field(True, env="NEW_FEATURE_ENABLED")
+new_feature_api_key: Optional[str] = Field(None, env="NEW_FEATURE_API_KEY")
+```
 
-# Firebase Configuration (optional)
-# REACT_APP_FIREBASE_API_KEY=your_firebase_api_key
-# REACT_APP_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-# REACT_APP_FIREBASE_PROJECT_ID=your_project_id
+#### 3. Add to Frontend (frontend/src/config/index.js)
+```javascript
+NEW_FEATURE_ENABLED: process.env.REACT_APP_NEW_FEATURE_ENABLED === 'true',
+NEW_FEATURE_API_KEY: process.env.REACT_APP_NEW_FEATURE_API_KEY,
+```
+
+#### 4. Sync and Validate
+```bash
+python scripts/sync_env.py
+python scripts/validate_config.py
+```
+
+### Security Best Practices
+
+#### Secrets Management
+- Never commit secrets to version control
+- Use environment-specific secret keys
+- Rotate keys regularly in production
+
+#### Environment Separation
+- Development and production use different configurations
+- Sensitive values only in production environment
+- Clear separation of concerns
+
+### Troubleshooting
+
+#### Common Issues
+```bash
+# Configuration validation fails
+python scripts/validate_config.py
+
+# Frontend can't access environment variables
+python scripts/sync_env.py
+
+# Backend configuration errors
+# Check app/config.py and .env file
+```
+
+#### Debug Mode
+```bash
+# Enable detailed logging
+LOG_LEVEL=DEBUG
+
+# Enable development tools
+ENABLE_DEBUG_TOOLBAR=true
+REACT_APP_SHOW_DEVTOOLS=true
 ```
 
 ## 🗄️ Database Management
