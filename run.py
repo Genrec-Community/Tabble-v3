@@ -34,7 +34,7 @@ if __name__ == "__main__":
     print("=" * 50 + "\n")
 
     # Get port from environment variable (for Render deployment) or default to 8000
-    port = int(os.environ.get("PORT", 8000))
+    port = int(os.environ.get("PORT", 10000))
 
     # Check if running in production (Render sets this)
     is_production = os.environ.get("RENDER") is not None
